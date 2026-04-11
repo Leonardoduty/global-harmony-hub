@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { Shield, Zap, Heart, DollarSign, Loader2, RotateCcw } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { generateScenario, generateOutcome } from "@/functions/presidential.functions";
+import { generateScenario, generateOutcome, generateScenarioIllustrations } from "@/functions/presidential.functions";
 
 type Scenario = {
   title: string;
   description: string;
+  imagePrompt?: string;
   options: { label: string; effects: Record<string, number>; outcome: string }[];
 };
 
@@ -29,6 +30,8 @@ const fallbackScenarios: Scenario[] = [
   {
     title: "Border Crisis",
     description: "Neighboring country reports mass refugee displacement. 50,000 civilians are heading toward your border. Your advisors are divided.",
+    imagePrompt:
+      "Dawn at a tense national border: aid tents, long lines of people in winter coats, military vehicles in silhouette, dust and cold light, emotional but dignified news illustration.",
     options: [
       { label: "Open borders & provide aid", effects: { diplomacy: 20, economy: -10, security: -5, approval: 15 }, outcome: "International praise pours in. Humanitarian organizations laud your decision. However, opposition parties raise concerns about resource strain." },
       { label: "Deploy military to secure border", effects: { diplomacy: -15, economy: 5, security: 20, approval: -10 }, outcome: "Border is secured but international community condemns the action. Sanctions are threatened by the UN Human Rights Council." },
@@ -38,6 +41,8 @@ const fallbackScenarios: Scenario[] = [
   {
     title: "Cyber Attack on Infrastructure",
     description: "A sophisticated cyber attack has disabled power grids in three major cities. Intelligence suggests a state-sponsored actor is behind it.",
+    imagePrompt:
+      "Night city skyline with darkened towers, red emergency lighting, holographic data streams collapsing, analysts in a crisis room lit by monitors, dramatic noir palette.",
     options: [
       { label: "Launch retaliatory cyber operation", effects: { diplomacy: -20, economy: -5, security: 15, approval: 5 }, outcome: "Your cyber team successfully disrupts the attacker's infrastructure. However, escalation fears rise globally." },
       { label: "Engage in diplomatic channels", effects: { diplomacy: 15, economy: 0, security: -5, approval: -5 }, outcome: "Diplomatic talks begin but progress is slow. Critics accuse you of weakness while power remains out." },
@@ -56,13 +61,46 @@ export default function PresidentialSim() {
   const [followUp, setFollowUp] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(true);
+  const [illustrations, setIllustrations] = useState<string[]>([]);
+  const [illustLoading, setIllustLoading] = useState(false);
 
   const genScenarioFn = useServerFn(generateScenario);
   const genOutcomeFn = useServerFn(generateOutcome);
+  const genIllustrationsFn = useServerFn(generateScenarioIllustrations);
 
   useEffect(() => {
     saveState({ stats, decisions, scenarioCount });
   }, [stats, decisions, scenarioCount]);
+
+  useEffect(() => {
+    if (!scenario || !aiEnabled) {
+      setIllustrations([]);
+      setIllustLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setIllustrations([]);
+    setIllustLoading(true);
+    genIllustrationsFn({
+      data: {
+        title: scenario.title,
+        description: scenario.description,
+        imagePrompt: scenario.imagePrompt,
+      },
+    })
+      .then((res) => {
+        if (!cancelled && res.imageDataUrls?.length) setIllustrations(res.imageDataUrls);
+      })
+      .catch(() => {
+        if (!cancelled) setIllustrations([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIllustLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [scenario, aiEnabled, genIllustrationsFn]);
 
   const loadScenario = async () => {
     setLoading(true);
@@ -194,6 +232,30 @@ export default function PresidentialSim() {
                 {aiEnabled && <span className="gp-badge-verified text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary font-mono">AI Generated</span>}
               </div>
               <h3 className="font-display text-xl font-bold mb-2">{scenario.title}</h3>
+              {aiEnabled && (illustLoading || illustrations.length > 0) && (
+                <div className="mb-4 space-y-2">
+                  {illustLoading && illustrations.length === 0 && (
+                    <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating scene illustration…
+                    </div>
+                  )}
+                  {illustrations.length > 0 && (
+                    <div
+                      className={`grid gap-2 rounded-md overflow-hidden border border-border ${illustrations.length > 1 ? "grid-cols-1 sm:grid-cols-2" : ""}`}
+                    >
+                      {illustrations.map((src, i) => (
+                        <img
+                          key={`${i}-${src.slice(0, 40)}`}
+                          src={src}
+                          alt=""
+                          className="w-full h-auto object-cover max-h-56 bg-muted"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <p className="text-sm text-foreground mb-4">{scenario.description}</p>
 
               {!outcome ? (

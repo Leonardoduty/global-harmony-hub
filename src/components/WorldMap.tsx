@@ -26,6 +26,7 @@ type CountryInfo = {
 export default function WorldMap() {
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [countryInfo, setCountryInfo] = useState<CountryInfo | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"conflicts" | "peace" | "history">("conflicts");
 
@@ -35,16 +36,21 @@ export default function WorldMap() {
     if (loading) return;
     setSelectedCountry(countryName);
     setCountryInfo(null);
+    setLoadError(null);
     setLoading(true);
     setActiveTab("conflicts");
 
     try {
       const result = await getInfoFn({ data: { countryName } });
       if (result.info) {
-        setCountryInfo(result.info);
+        setCountryInfo(result.info as CountryInfo);
+        setLoadError(null);
+      } else {
+        setLoadError(typeof result.error === "string" ? result.error : "Could not load country analysis.");
       }
-    } catch {
-      console.error("Failed to load country info");
+    } catch (e) {
+      console.error("Failed to load country info", e);
+      setLoadError("Network or server error. Check the console and try again.");
     } finally {
       setLoading(false);
     }
@@ -53,6 +59,7 @@ export default function WorldMap() {
   const closePanel = () => {
     setSelectedCountry(null);
     setCountryInfo(null);
+    setLoadError(null);
   };
 
   return (
@@ -72,8 +79,9 @@ export default function WorldMap() {
                   stroke="oklch(0.7 0.04 80)"
                   strokeWidth={0.5}
                   onClick={() => {
-                    const name = geo.properties?.name;
-                    if (name) handleCountryClick(name);
+                    const props = geo.properties as { name?: string; NAME?: string } | undefined;
+                    const name = props?.name ?? props?.NAME;
+                    if (name) handleCountryClick(String(name));
                   }}
                   style={{
                     hover: { fill: "oklch(0.7 0.1 130)" },
@@ -200,8 +208,17 @@ export default function WorldMap() {
               )}
             </div>
           ) : (
-            <div className="flex items-center justify-center py-16">
-              <p className="text-sm text-muted-foreground">Failed to load data. Click another country.</p>
+            <div className="flex flex-col items-center justify-center gap-3 py-12 px-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                {loadError ?? "Failed to load data. Click another country."}
+              </p>
+              <button
+                type="button"
+                className="gp-btn-secondary text-xs"
+                onClick={() => selectedCountry && handleCountryClick(selectedCountry)}
+              >
+                Retry
+              </button>
             </div>
           )}
         </div>
