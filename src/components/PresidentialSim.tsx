@@ -103,7 +103,7 @@ export default function PresidentialSim() {
     }));
     setOutcome(option.outcome);
     setDecisions((d) => [...d, `${scenario?.title}: ${option.label}`]);
-    setScenarioCount((c) => c + 1);
+    setScenarioCount((c: number) => c + 1);
 
     // Get AI follow-up teaser
     if (aiEnabled && scenario) {
