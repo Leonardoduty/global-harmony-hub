@@ -227,7 +227,7 @@ export default function PresidentialSim() {
         <details className="gp-card">
           <summary className="font-display font-bold text-sm cursor-pointer">Decision History ({decisions.length})</summary>
           <ul className="mt-3 space-y-1 text-xs font-mono text-muted-foreground">
-            {decisions.map((d, i) => (
+            {decisions.map((d: string, i: number) => (
               <li key={i} className="pl-3 border-l-2 border-border">{i + 1}. {d}</li>
             ))}
           </ul>

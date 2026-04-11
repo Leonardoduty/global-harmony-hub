@@ -76,10 +76,9 @@ export default function WorldMap() {
                     if (name) handleCountryClick(name);
                   }}
                   style={{
-                    default: { cursor: "pointer" },
-                    hover: { fill: "oklch(0.7 0.1 130)", cursor: "pointer" },
-                    pressed: { fill: "oklch(0.6 0.12 130)" },
+                    hover: { fill: "oklch(0.7 0.1 130)" },
                   }}
+                  className="cursor-pointer"
                 />
               ))
             }
