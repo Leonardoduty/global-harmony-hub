@@ -20,6 +20,9 @@ declare module 'react-simple-maps' {
     stroke?: string;
     strokeWidth?: number;
     style?: { hover?: Record<string, string> };
+    onClick?: (event: any) => void;
+    className?: string;
+    key?: string;
   }
   export const Geography: ComponentType<GeographyProps>;
   
