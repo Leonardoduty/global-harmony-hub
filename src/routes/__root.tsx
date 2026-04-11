@@ -1,6 +1,8 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import Header from "@/components/Header";
+import HarmonyChatbot from "@/components/HarmonyChatbot";
 
 function NotFoundComponent() {
   return (
@@ -67,5 +69,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  return <Outlet />;
+  return (
+    <>
+      <Header />
+      <Outlet />
+      <HarmonyChatbot />
+    </>
+  );
 }
