@@ -7,6 +7,10 @@ export type CountryInfo = {
   summary: string;
   leader?: { name: string; title: string; personality: string; politicalStance: string };
   relationships?: { allied: string[]; hostile: string[]; neutral: string[] };
+  /** War, peace, crisis, sanctions, etc. */
+  currentSituation?: string;
+  /** How this country relates to the player / focal state in the sim */
+  playerRelationship?: string;
 };
 
 const mockData: Record<string, CountryInfo> = {
@@ -171,8 +175,10 @@ export function getMockCountryInfo(countryName: string): CountryInfo {
   return {
     name: countryName,
     stabilityScore: 50,
-    summary: `${countryName} is a sovereign nation with its own complex geopolitical dynamics. Real-time AI analysis requires a configured API key. The information shown here is a placeholder.`,
-    leader: { name: "Current Leader", title: "Head of State", personality: "Unknown", politicalStance: "Undetermined" },
+    summary: `${countryName} is a sovereign nation with its own complex geopolitical dynamics. This briefing uses offline reference data while live analysis is unavailable.`,
+    leader: { name: "Current Leader", title: "Head of State", personality: "Pragmatic, cautious", politicalStance: "Balancing domestic and regional priorities" },
+    currentSituation: "Diplomatic engagement continues with mixed signals on trade and security.",
+    playerRelationship: "Baseline diplomatic contact — relationship depends on your administration's next moves.",
     conflicts: [
       { name: "Internal Political Tensions", status: "frozen", years: "Recent", description: "Various internal and regional political challenges face the country." },
     ],
@@ -183,6 +189,10 @@ export function getMockCountryInfo(countryName: string): CountryInfo {
       { year: "20th century", event: "Modern state formation and independence" },
       { year: "Recent decades", event: "Integration into global economic and political systems" },
     ],
-    relationships: { allied: [], hostile: [], neutral: [] },
+    relationships: {
+      allied: ["Regional partners"],
+      hostile: [],
+      neutral: ["Neighboring states", "Major trading partners"],
+    },
   };
 }

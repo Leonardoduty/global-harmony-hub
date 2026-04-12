@@ -1,15 +1,23 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Shield, Zap, Heart, DollarSign, Loader as Loader2, RotateCcw, Sparkles } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
+import { motion } from "framer-motion";
 import {
   generateScenario,
-  generateOutcome,
+  finalizeDecision,
   generateScenarioIllustrations,
 } from "@/functions/presidential.functions";
 import AdvisorPanel from "@/components/sim/AdvisorPanel";
 import NewsPanel from "@/components/sim/NewsPanel";
 import DecisionPreview from "@/components/sim/DecisionPreview";
 import TimelineLog, { type TimelineEntry } from "@/components/sim/TimelineLog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Scenario = {
   title: string;
@@ -78,16 +86,29 @@ export default function PresidentialSim() {
   const [illustLoading, setIllustLoading] = useState(false);
   const [hoveredOption, setHoveredOption] = useState<number | null>(null);
   const [newsFeedTrigger, setNewsFeedTrigger] = useState(0);
-  const [pendingChoice, setPendingChoice] = useState<Scenario["options"][0] | null>(null);
+  const [resolvingChoice, setResolvingChoice] = useState(false);
+  const [confirmOption, setConfirmOption] = useState<Scenario["options"][0] | null>(null);
+  const [outcomeImageUrl, setOutcomeImageUrl] = useState<string | null>(null);
 
   const genScenarioFn = useServerFn(generateScenario);
-  const genOutcomeFn = useServerFn(generateOutcome);
+  const finalizeFn = useServerFn(finalizeDecision);
   const genIllustrationsFn = useServerFn(generateScenarioIllustrations);
+
+  const latestEventImage = useMemo(() => {
+    for (let i = timeline.length - 1; i >= 0; i--) {
+      const u = timeline[i]?.imageDataUrl;
+      if (u) return u;
+    }
+    return null;
+  }, [timeline]);
 
   const illustCancelRef = useRef<boolean>(false);
 
   useEffect(() => {
     saveState({ stats, decisions, scenarioCount, timeline, worldEvents });
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("gp-sim-updated"));
+    }
   }, [stats, decisions, scenarioCount, timeline, worldEvents]);
 
   useEffect(() => {
@@ -128,7 +149,9 @@ export default function PresidentialSim() {
     setFollowUp(null);
     setNewsHeadline(null);
     setHoveredOption(null);
-    setPendingChoice(null);
+    setResolvingChoice(false);
+    setConfirmOption(null);
+    setOutcomeImageUrl(null);
 
     try {
       const result = await genScenarioFn({
@@ -155,54 +178,68 @@ export default function PresidentialSim() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const choose = async (option: Scenario["options"][0]) => {
-    if (!scenario) return;
-    setPendingChoice(option);
+  const confirmChoice = async (option: Scenario["options"][0]) => {
+    if (!scenario || resolvingChoice) return;
+    setConfirmOption(null);
+    setResolvingChoice(true);
 
     const prevStats = { ...stats };
+    const decisionText = `${scenario.title}: ${option.label}`;
+    const newDecisions = [...decisions, decisionText];
+
+    const preview = option.preview ?? option.effects;
+    let headlineText: string | null = null;
+    let followUpText: string | null = null;
+    let narrative = option.outcome;
+    let applied = { ...option.effects };
+
+    try {
+      const finalized = await finalizeFn({
+        data: {
+          scenarioTitle: scenario.title,
+          scenarioDescription: scenario.description,
+          choiceLabel: option.label,
+          suggestedOutcome: option.outcome,
+          previewEffects: preview,
+          fallbackEffects: option.effects,
+          stats: prevStats,
+          decisionHistory: newDecisions.slice(-8),
+        },
+      });
+      applied = finalized.appliedEffects;
+      narrative = finalized.narrativeOutcome || option.outcome;
+      followUpText = finalized.followUp ?? null;
+      headlineText = finalized.newsHeadline ?? null;
+    } catch (e) {
+      console.error("[PresidentialSim] finalizeDecision failed:", e);
+    }
+
     const newStats = {
-      diplomacy: Math.max(0, Math.min(100, stats.diplomacy + (option.effects.diplomacy || 0))),
-      economy: Math.max(0, Math.min(100, stats.economy + (option.effects.economy || 0))),
-      security: Math.max(0, Math.min(100, stats.security + (option.effects.security || 0))),
-      approval: Math.max(0, Math.min(100, stats.approval + (option.effects.approval || 0))),
+      diplomacy: Math.max(0, Math.min(100, prevStats.diplomacy + (applied.diplomacy || 0))),
+      economy: Math.max(0, Math.min(100, prevStats.economy + (applied.economy || 0))),
+      security: Math.max(0, Math.min(100, prevStats.security + (applied.security || 0))),
+      approval: Math.max(0, Math.min(100, prevStats.approval + (applied.approval || 0))),
     };
 
     setStats(newStats);
-    setOutcome(option.outcome);
+    setOutcome(narrative);
+    setFollowUp(followUpText);
+    setNewsHeadline(headlineText);
 
-    const decisionText = `${scenario.title}: ${option.label}`;
-    const newDecisions = [...decisions, decisionText];
     setDecisions(newDecisions);
     setScenarioCount((c) => c + 1);
 
     const statChanges: Record<string, number> = {};
-    for (const key of Object.keys(option.effects)) {
+    for (const key of Object.keys(applied)) {
       statChanges[key] = newStats[key as keyof typeof newStats] - prevStats[key as keyof typeof prevStats];
     }
 
-    let headlineText: string | null = null;
-    let followUpText: string | null = null;
-
-    try {
-      const outcomeResult = await genOutcomeFn({
-        data: {
-          scenario: scenario.description,
-          choice: option.label,
-          stats: prevStats,
-          decisionHistory: newDecisions.slice(-5),
-        },
-      });
-      followUpText = outcomeResult.followUp ?? null;
-      headlineText = outcomeResult.newsHeadline ?? null;
-      setFollowUp(followUpText);
-      setNewsHeadline(headlineText);
-    } catch { /* ignore */ }
-
+    const entryId = Date.now();
     const entry: TimelineEntry = {
-      id: Date.now(),
+      id: entryId,
       scenarioTitle: scenario.title,
       decision: option.label,
-      outcome: option.outcome,
+      outcome: narrative,
       newsHeadline: headlineText ?? undefined,
       statChanges,
       timestamp: formatTimestamp(),
@@ -215,6 +252,24 @@ export default function PresidentialSim() {
     }
 
     setNewsFeedTrigger((n) => n + 1);
+    setResolvingChoice(false);
+
+    genIllustrationsFn({
+      data: {
+        title: scenario.title,
+        description: `${option.label}\n\n${narrative}`,
+        imagePrompt: scenario.imagePrompt,
+      },
+    })
+      .then((res) => {
+        const url = res.imageDataUrls?.[0];
+        if (!url) return;
+        setOutcomeImageUrl(url);
+        setTimeline((prev) =>
+          prev.map((e) => (e.id === entryId ? { ...e, imageDataUrl: url } : e))
+        );
+      })
+      .catch((err) => console.warn("[PresidentialSim] outcome illustration:", err));
   };
 
   const next = () => {
@@ -231,7 +286,8 @@ export default function PresidentialSim() {
     setOutcome(null);
     setFollowUp(null);
     setNewsHeadline(null);
-    setPendingChoice(null);
+    setConfirmOption(null);
+    setOutcomeImageUrl(null);
     localStorage.removeItem(STORAGE_KEY);
     setTimeout(() => loadScenario(), 100);
   };
@@ -239,7 +295,37 @@ export default function PresidentialSim() {
   const gameOver = Object.values(stats).some((v) => v <= 0);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
+      <Dialog open={!!confirmOption} onOpenChange={(o) => !o && setConfirmOption(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display text-lg">Confirm decision</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Staff projections are estimates — consequences may shift once orders are executed.
+            </p>
+          </DialogHeader>
+          {confirmOption && scenario && (
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-foreground">{confirmOption.label}</p>
+              <DecisionPreview option={confirmOption} currentStats={stats} />
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <button type="button" className="gp-btn-secondary text-sm" onClick={() => setConfirmOption(null)}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="gp-btn-primary text-sm"
+              disabled={!confirmOption || resolvingChoice}
+              onClick={() => confirmOption && confirmChoice(confirmOption)}
+            >
+              {resolvingChoice ? "Executing…" : "Confirm"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -277,8 +363,11 @@ export default function PresidentialSim() {
               : null;
 
           return (
-            <div
+            <motion.div
               key={s.key}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
               className={`gp-card text-center transition-all duration-300 ${critical ? "ring-2 ring-destructive animate-pulse" : ""}`}
             >
               <s.icon className={`w-4 h-4 mx-auto mb-1 ${critical ? "text-destructive" : "text-muted-foreground"}`} />
@@ -306,7 +395,7 @@ export default function PresidentialSim() {
                   {projected > val ? "+" : ""}{projected - val} → {projected}
                 </div>
               )}
-            </div>
+            </motion.div>
           );
         })}
       </div>
@@ -329,7 +418,12 @@ export default function PresidentialSim() {
 
       {/* Scenario Panel */}
       {!gameOver && (
-        <div className="gp-card">
+        <motion.div
+          className="gp-card"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <Loader2 className="w-7 h-7 animate-spin text-primary" />
@@ -386,11 +480,11 @@ export default function PresidentialSim() {
                   {scenario.options.map((opt, i) => (
                     <div key={i}>
                       <button
-                        onClick={() => choose(opt)}
+                        onClick={() => setConfirmOption(opt)}
                         onMouseEnter={() => setHoveredOption(i)}
                         onMouseLeave={() => setHoveredOption(null)}
                         className="w-full text-left gp-btn-secondary text-sm transition-all duration-150 hover:border-primary/50"
-                        disabled={!!pendingChoice}
+                        disabled={resolvingChoice}
                       >
                         <span className="font-semibold">{opt.label}</span>
                       </button>
@@ -399,17 +493,16 @@ export default function PresidentialSim() {
                       )}
                     </div>
                   ))}
-                  {pendingChoice && (
-                    <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground mt-2">
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      Processing decision...
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="space-y-3">
                   <div className="bg-muted rounded-lg p-4 border border-border">
                     <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-2">Outcome</div>
+                    {outcomeImageUrl && (
+                      <div className="rounded-md overflow-hidden border border-border mb-3">
+                        <img src={outcomeImageUrl} alt="" className="w-full max-h-48 object-cover" />
+                      </div>
+                    )}
                     <p className="text-sm text-foreground leading-relaxed">{outcome}</p>
                     {followUp && (
                       <p className="text-xs text-muted-foreground italic border-l-2 border-primary/50 pl-3 mt-3">
@@ -437,7 +530,7 @@ export default function PresidentialSim() {
               </button>
             </div>
           )}
-        </div>
+        </motion.div>
       )}
 
       {/* Advisor + News + Timeline panels */}
@@ -452,6 +545,7 @@ export default function PresidentialSim() {
           recentDecisions={decisions.slice(-5)}
           worldEvents={worldEvents}
           refreshTrigger={newsFeedTrigger}
+          leadImageUrl={latestEventImage ?? outcomeImageUrl}
         />
         <TimelineLog entries={timeline} />
       </div>

@@ -9,13 +9,14 @@ export type TimelineEntry = {
   newsHeadline?: string;
   statChanges: Record<string, number>;
   timestamp: string;
+  imageDataUrl?: string;
 };
 
 type Props = {
   entries: TimelineEntry[];
 };
 
-function StatChange({ key: k, value }: { key: string; value: number }) {
+function StatChange({ statKey: k, value }: { statKey: string; value: number }) {
   if (value === 0) return null;
   const pos = value > 0;
   const labels: Record<string, string> = { diplomacy: "DIP", economy: "ECO", security: "SEC", approval: "APP" };
@@ -63,6 +64,11 @@ export default function TimelineLog({ entries }: Props) {
                   </div>
                   <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{entry.scenarioTitle}</div>
                   <div className="text-sm font-medium text-foreground">{entry.decision}</div>
+                  {entry.imageDataUrl && (
+                    <div className="rounded-md overflow-hidden border border-border mt-2">
+                      <img src={entry.imageDataUrl} alt="" className="w-full max-h-40 object-cover" />
+                    </div>
+                  )}
                   {entry.newsHeadline && (
                     <div className="text-xs text-muted-foreground italic border-l-2 border-primary/40 pl-2">
                       "{entry.newsHeadline}"
@@ -72,7 +78,7 @@ export default function TimelineLog({ entries }: Props) {
                     {Object.entries(entry.statChanges)
                       .filter(([, v]) => v !== 0)
                       .map(([k, v]) => (
-                        <StatChange key={k} value={v} />
+                        <StatChange key={k} statKey={k} value={v} />
                       ))}
                   </div>
                 </div>

@@ -15,6 +15,8 @@ type Props = {
   recentDecisions: string[];
   worldEvents: string[];
   refreshTrigger?: number;
+  /** Latest AI scene (e.g. last major decision) */
+  leadImageUrl?: string | null;
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -26,7 +28,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   global: "text-muted-foreground bg-muted",
 };
 
-export default function NewsPanel({ stats, recentDecisions, worldEvents, refreshTrigger }: Props) {
+export default function NewsPanel({ stats, recentDecisions, worldEvents, refreshTrigger, leadImageUrl }: Props) {
   const [open, setOpen] = useState(false);
   const [headlines, setHeadlines] = useState<Headline[]>([]);
   const [loading, setLoading] = useState(false);
@@ -103,6 +105,13 @@ export default function NewsPanel({ stats, recentDecisions, worldEvents, refresh
               Refresh
             </button>
           </div>
+
+          {leadImageUrl && (
+            <div className="rounded-md overflow-hidden border border-border mb-2">
+              <img src={leadImageUrl} alt="" className="w-full max-h-36 object-cover" />
+              <p className="text-[10px] font-mono text-muted-foreground px-2 py-1 bg-muted/50">Field visual — latest major event</p>
+            </div>
+          )}
 
           {loading && headlines.length === 0 ? (
             <div className="space-y-2">

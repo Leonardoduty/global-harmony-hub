@@ -91,27 +91,67 @@ function normalizeCountryInfo(raw: unknown, fallbackName: string) {
     : [];
   const leader = mapLeader(o.leader);
   const relationships = mapRelationships(o.relationships);
+  const currentSituation =
+    typeof o.currentSituation === "string" && o.currentSituation.trim() ? o.currentSituation.trim() : undefined;
+  const playerRelationship =
+    typeof o.playerRelationship === "string" && o.playerRelationship.trim()
+      ? o.playerRelationship.trim()
+      : undefined;
 
-  return { name, conflicts, peaceInitiatives, history, stabilityScore, summary, leader, relationships };
+  return {
+    name,
+    conflicts,
+    peaceInitiatives,
+    history,
+    stabilityScore,
+    summary,
+    leader,
+    relationships,
+    currentSituation,
+    playerRelationship,
+  };
 }
 
 export const getCountryInfo = createServerFn({ method: "POST" })
-  .inputValidator((input: { countryName: string }) => {
-    if (!input.countryName || input.countryName.length > 100) {
+  .inputValidator((input: { countryName: string; gameContext?: string }) => {
+    const countryName = typeof input?.countryName === "string" ? input.countryName.trim() : "";
+    if (!countryName || countryName.length > 100) {
       throw new Error("Invalid country name");
     }
-    return input;
+    const gameContext =
+      typeof input?.gameContext === "string" && input.gameContext.trim()
+        ? input.gameContext.trim().slice(0, 4000)
+        : undefined;
+    return { countryName, gameContext };
   })
   .handler(async ({ data }) => {
-    const apiKey = getGeminiApiKey();
-
-    if (!apiKey) {
-      console.warn("[CountryInfo] GEMINI_API_KEY not configured — serving mock data for:", data.countryName);
+    const serveMock = (reason: string) => {
+      console.warn(`[CountryInfo] ${reason} — mock briefing for:`, data.countryName);
       const mockInfo = getMockCountryInfo(data.countryName);
-      return { info: mockInfo, error: null, source: "mock" as const };
-    }
+      return {
+        info: mockInfo,
+        error: null as string | null,
+        source: "mock" as const,
+        loadWarning: reason,
+      };
+    };
 
     try {
+      const apiKey = getGeminiApiKey();
+
+      if (!apiKey) {
+        return serveMock("No API key configured — offline reference briefing.");
+      }
+
+      const contextBlock = data.gameContext
+        ? `
+
+The analyst is briefing a head-of-state whose administration context is:
+${data.gameContext}
+
+Adjust "relationships" (allied/hostile/neutral toward OTHER states) and "playerRelationship" to stay plausible given that context — these are simulator-facing ties, not personal opinions. Keep country names in English and match common map labels (e.g. "United States", "Russia").`
+        : "";
+
       const result = await geminiGenerateFromMessages({
         apiKey,
         responseMimeType: "application/json",
@@ -132,6 +172,8 @@ export const getCountryInfo = createServerFn({ method: "POST" })
   ],
   "stabilityScore": number (0-100),
   "summary": "2-3 sentence geopolitical summary",
+  "currentSituation": "one sentence: war, peace, crisis, sanctions, normalization talks, etc.",
+  "playerRelationship": "one sentence: how this country likely relates to the player's administration right now",
   "leader": {
     "name": "current leader name",
     "title": "their official title",
@@ -145,7 +187,7 @@ export const getCountryInfo = createServerFn({ method: "POST" })
   }
 }
 
-Include 2-5 items per array. Focus on real, factual data. For stabilityScore: 0=failed state, 100=perfectly stable.`,
+Include 2-5 items per array. Focus on real, factual data. For stabilityScore: 0=failed state, 100=perfectly stable.${contextBlock}`,
           },
           {
             role: "user",
@@ -155,9 +197,8 @@ Include 2-5 items per array. Focus on real, factual data. For stabilityScore: 0=
       });
 
       if (!result.ok) {
-        console.error(`[CountryInfo] Gemini API error ${result.status}: ${result.message} — falling back to mock data`);
-        const mockInfo = getMockCountryInfo(data.countryName);
-        return { info: mockInfo, error: null, source: "mock" as const };
+        console.error(`[CountryInfo] Gemini API error ${result.status}: ${result.message}`);
+        return serveMock(`Gemini error ${result.status}: ${result.message}`);
       }
 
       const cleaned = stripJsonMarkdown(result.text);
@@ -165,22 +206,19 @@ Include 2-5 items per array. Focus on real, factual data. For stabilityScore: 0=
       try {
         parsed = JSON.parse(cleaned);
       } catch (parseErr) {
-        console.error("[CountryInfo] JSON parse error:", parseErr, "Raw response:", cleaned.slice(0, 300));
-        const mockInfo = getMockCountryInfo(data.countryName);
-        return { info: mockInfo, error: null, source: "mock" as const };
+        console.error("[CountryInfo] JSON parse error:", parseErr, "Raw response:", cleaned.slice(0, 400));
+        return serveMock("Model returned invalid JSON");
       }
 
       const info = normalizeCountryInfo(parsed, data.countryName);
       if (!info) {
-        console.warn("[CountryInfo] Normalization failed — falling back to mock data for:", data.countryName);
-        const mockInfo = getMockCountryInfo(data.countryName);
-        return { info: mockInfo, error: null, source: "mock" as const };
+        console.warn("[CountryInfo] Normalization failed for:", data.countryName);
+        return serveMock("Could not normalize model output");
       }
 
-      return { info, error: null, source: "ai" as const };
+      return { info, error: null as string | null, source: "ai" as const, loadWarning: null as string | null };
     } catch (error) {
-      console.error("[CountryInfo] Unexpected server error:", error, "— falling back to mock data");
-      const mockInfo = getMockCountryInfo(data.countryName);
-      return { info: mockInfo, error: null, source: "mock" as const };
+      console.error("[CountryInfo] Unexpected server error:", error);
+      return serveMock(error instanceof Error ? error.message : "Unexpected server error");
     }
   });

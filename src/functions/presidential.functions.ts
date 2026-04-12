@@ -5,6 +5,7 @@ import {
   getGeminiApiKey,
   stripJsonMarkdown,
 } from "@/lib/gemini";
+import { buildProceduralScenario } from "@/lib/proceduralCrisis";
 
 function normalizeScenario(raw: unknown) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
@@ -41,7 +42,13 @@ function normalizeScenario(raw: unknown) {
       return { diplomacy: n2("diplomacy"), economy: n2("economy"), security: n2("security"), approval: n2("approval") };
     };
     if (!label || !outcome) return null;
-    return { label, effects, outcome, preview: preview ? mapPrev(preview) : undefined };
+    const mappedPreview = preview ? mapPrev(preview) : undefined;
+    return {
+      label,
+      effects,
+      outcome,
+      preview: mappedPreview ?? { diplomacy: effects.diplomacy, economy: effects.economy, security: effects.security, approval: effects.approval },
+    };
   };
 
   const rawOpts = Array.isArray(o.options) ? o.options : [];
@@ -56,38 +63,11 @@ function normalizeScenario(raw: unknown) {
   return { title, description, imagePrompt, options: options.slice(0, 5) };
 }
 
-const FALLBACK_SCENARIOS = [
-  {
-    title: "Border Refugee Crisis",
-    description: "Neighboring country reports mass displacement. 50,000 civilians are heading toward your border. Your advisors are divided on how to respond.",
-    imagePrompt: "Dawn at a tense national border: aid tents, long lines of people in winter coats, military vehicles in silhouette, dust and cold light, emotional but dignified news illustration.",
-    options: [
-      { label: "Open borders & provide humanitarian aid", effects: { diplomacy: 20, economy: -10, security: -5, approval: 15 }, outcome: "International praise pours in. Humanitarian organizations laud the decision. However, opposition parties raise concerns about resource strain and security vetting.", preview: { diplomacy: 20, economy: -10, security: -5, approval: 15 } },
-      { label: "Deploy military to secure border", effects: { diplomacy: -15, economy: 5, security: 20, approval: -10 }, outcome: "Border is secured but international community condemns the action. Sanctions are threatened by the UN Human Rights Council.", preview: { diplomacy: -15, economy: 5, security: 20, approval: -10 } },
-      { label: "Negotiate joint processing with neighbor", effects: { diplomacy: 15, economy: -5, security: 10, approval: 10 }, outcome: "Bilateral talks begin. A shared processing center is established. Both nations share the burden while maintaining security.", preview: { diplomacy: 15, economy: -5, security: 10, approval: 10 } },
-    ],
-  },
-  {
-    title: "Cyber Attack on Infrastructure",
-    description: "A sophisticated cyber attack has disabled power grids in three major cities. Intelligence suggests a state-sponsored actor is responsible.",
-    imagePrompt: "Night city skyline with darkened towers, red emergency lighting, holographic data streams collapsing, analysts in a crisis room lit by monitors, dramatic noir palette.",
-    options: [
-      { label: "Launch retaliatory cyber operation", effects: { diplomacy: -20, economy: -5, security: 15, approval: 5 }, outcome: "Your cyber team successfully disrupts the attacker's infrastructure. However, escalation fears rise globally.", preview: { diplomacy: -20, economy: -5, security: 15, approval: 5 } },
-      { label: "Engage diplomatic channels first", effects: { diplomacy: 15, economy: 0, security: -5, approval: -5 }, outcome: "Diplomatic talks begin but progress is slow. Critics accuse you of weakness while power remains out for citizens.", preview: { diplomacy: 15, economy: 0, security: -5, approval: -5 } },
-      { label: "Declare emergency & rebuild defenses", effects: { diplomacy: 5, economy: -15, security: 10, approval: 10 }, outcome: "Massive investment in cyber infrastructure begins. Grid is restored in 48 hours with significantly improved defenses.", preview: { diplomacy: 5, economy: -15, security: 10, approval: 10 } },
-    ],
-  },
-  {
-    title: "Economic Sanctions Threat",
-    description: "A powerful trading bloc threatens economic sanctions unless you comply with their demands on human rights and trade policies. Your economy is already under strain.",
-    imagePrompt: "Tense meeting room in glass skyscraper, suited negotiators at long table, city skyline in background, stacks of documents, flags on stands, cold blue lighting.",
-    options: [
-      { label: "Accept partial compliance", effects: { diplomacy: 10, economy: 15, security: 0, approval: -5 }, outcome: "Trade relations stabilize but domestic critics call it a capitulation. Your sovereignty narrative takes a hit.", preview: { diplomacy: 10, economy: 15, security: 0, approval: -5 } },
-      { label: "Refuse and seek alternative partners", effects: { diplomacy: -10, economy: -20, security: 5, approval: 10 }, outcome: "National pride surges but economic pain increases. New partnerships with non-Western nations begin forming.", preview: { diplomacy: -10, economy: -20, security: 5, approval: 10 } },
-      { label: "Call international mediation", effects: { diplomacy: 20, economy: -5, security: 0, approval: 5 }, outcome: "A neutral forum is established. The dispute enters prolonged negotiation but immediate sanctions are delayed.", preview: { diplomacy: 20, economy: -5, security: 0, approval: 5 } },
-    ],
-  },
-];
+function clampEffect(n: unknown): number {
+  const v = typeof n === "number" && Number.isFinite(n) ? n : Number(n);
+  if (!Number.isFinite(v)) return 0;
+  return Math.max(-25, Math.min(25, Math.round(v)));
+}
 
 export const generateScenario = createServerFn({ method: "POST" })
   .inputValidator(
@@ -106,8 +86,12 @@ export const generateScenario = createServerFn({ method: "POST" })
     const apiKey = getGeminiApiKey();
 
     if (!apiKey) {
-      console.warn("[PresidentialSim] GEMINI_API_KEY not set — using fallback scenario");
-      const scenario = FALLBACK_SCENARIOS[data.scenarioCount % FALLBACK_SCENARIOS.length];
+      console.warn("[PresidentialSim] GEMINI_API_KEY not set — procedural crisis generator");
+      const scenario = buildProceduralScenario({
+        stats: data.stats,
+        previousDecisions: data.previousDecisions,
+        scenarioCount: data.scenarioCount,
+      });
       return { scenario, error: null, source: "fallback" as const };
     }
 
@@ -166,8 +150,12 @@ Generate exactly 3 options.`,
       });
 
       if (!result.ok) {
-        console.error(`[PresidentialSim] Gemini error ${result.status}: ${result.message} — using fallback`);
-        const scenario = FALLBACK_SCENARIOS[data.scenarioCount % FALLBACK_SCENARIOS.length];
+        console.error(`[PresidentialSim] Gemini error ${result.status}: ${result.message} — procedural scenario`);
+        const scenario = buildProceduralScenario({
+          stats: data.stats,
+          previousDecisions: data.previousDecisions,
+          scenarioCount: data.scenarioCount,
+        });
         return { scenario, error: null, source: "fallback" as const };
       }
 
@@ -176,33 +164,77 @@ Generate exactly 3 options.`,
         parsed = JSON.parse(stripJsonMarkdown(result.text));
       } catch (parseErr) {
         console.error("[PresidentialSim] JSON parse error:", parseErr);
-        const scenario = FALLBACK_SCENARIOS[data.scenarioCount % FALLBACK_SCENARIOS.length];
+        const scenario = buildProceduralScenario({
+          stats: data.stats,
+          previousDecisions: data.previousDecisions,
+          scenarioCount: data.scenarioCount,
+        });
         return { scenario, error: null, source: "fallback" as const };
       }
 
       const scenario = normalizeScenario(parsed);
       if (!scenario) {
-        console.warn("[PresidentialSim] Scenario normalization failed — using fallback");
-        const fallback = FALLBACK_SCENARIOS[data.scenarioCount % FALLBACK_SCENARIOS.length];
+        console.warn("[PresidentialSim] Scenario normalization failed — procedural scenario");
+        const fallback = buildProceduralScenario({
+          stats: data.stats,
+          previousDecisions: data.previousDecisions,
+          scenarioCount: data.scenarioCount,
+        });
         return { scenario: fallback, error: null, source: "fallback" as const };
       }
 
       return { scenario, error: null, source: "ai" as const };
     } catch (error) {
-      console.error("[PresidentialSim] Unexpected error:", error, "— using fallback");
-      const scenario = FALLBACK_SCENARIOS[data.scenarioCount % FALLBACK_SCENARIOS.length];
+      console.error("[PresidentialSim] Unexpected error:", error, "— procedural scenario");
+      const scenario = buildProceduralScenario({
+        stats: data.stats,
+        previousDecisions: data.previousDecisions,
+        scenarioCount: data.scenarioCount,
+      });
       return { scenario, error: null, source: "fallback" as const };
     }
   });
 
-export const generateOutcome = createServerFn({ method: "POST" })
-  .inputValidator((input: { scenario: string; choice: string; stats: Record<string, number>; decisionHistory: string[] }) => {
-    if (!input.scenario || !input.choice) throw new Error("Invalid input");
-    return input;
-  })
+export const finalizeDecision = createServerFn({ method: "POST" })
+  .inputValidator(
+    (input: {
+      scenarioTitle: string;
+      scenarioDescription: string;
+      choiceLabel: string;
+      suggestedOutcome: string;
+      previewEffects: Record<string, number>;
+      fallbackEffects: Record<string, number>;
+      stats: Record<string, number>;
+      decisionHistory: string[];
+    }) => {
+      if (!input.scenarioDescription?.trim() || !input.choiceLabel?.trim()) throw new Error("Invalid input");
+      return input;
+    }
+  )
   .handler(async ({ data }) => {
+    const clampedFallback = {
+      diplomacy: clampEffect(data.fallbackEffects?.diplomacy),
+      economy: clampEffect(data.fallbackEffects?.economy),
+      security: clampEffect(data.fallbackEffects?.security),
+      approval: clampEffect(data.fallbackEffects?.approval),
+    };
+
+    const wireHeadline = () => {
+      const t = data.scenarioTitle.trim();
+      const short = t.length > 42 ? `${t.slice(0, 42)}…` : t;
+      return `Global Pulse: ${short} — cabinet backs "${data.choiceLabel.slice(0, 32)}${data.choiceLabel.length > 32 ? "…" : ""}"`;
+    };
+
     const apiKey = getGeminiApiKey();
-    if (!apiKey) return { followUp: null, newsHeadline: null };
+    if (!apiKey) {
+      return {
+        appliedEffects: clampedFallback,
+        narrativeOutcome: data.suggestedOutcome,
+        followUp: "Capitals recalibrate overnight; expect knock-on pressure in your next briefing.",
+        newsHeadline: wireHeadline(),
+        source: "procedural" as const,
+      };
+    }
 
     try {
       const result = await geminiGenerateFromMessages({
@@ -211,39 +243,83 @@ export const generateOutcome = createServerFn({ method: "POST" })
         messages: [
           {
             role: "system",
-            content: `You are a presidential simulation narrator and news generator. Given a scenario decision, generate:
-1. A dramatic teaser about what consequences follow next
-2. A realistic news headline about this decision
+            content: `Finalize a presidential simulation turn. Staff PUBLIC estimate of stat deltas: ${JSON.stringify(data.previewEffects)}. Operations baseline (true plan) deltas: ${JSON.stringify(data.fallbackEffects)}.
 
-Respond in JSON:
+Return ONLY JSON:
 {
-  "followUp": "1-2 sentence dramatic teaser hinting at next scenario consequences",
-  "newsHeadline": "Realistic AP/Reuters-style news headline about this decision (10-15 words)"
-}`,
+  "appliedEffects": { "diplomacy": int, "economy": int, "security": int, "approval": int },
+  "narrativeOutcome": "2-4 sentences — what actually happened on the ground and in corridors of power",
+  "followUp": "1-2 sentence teaser for the next crisis beat",
+  "newsHeadline": "Wire-service headline, max 14 words, no quotation marks inside"
+}
+
+Rules: each appliedEffects value between -25 and 25. appliedEffects should usually be close to the baseline but may deviate by a few points for realism. No markdown.`,
           },
           {
             role: "user",
-            content: `Scenario: ${data.scenario}\nChoice made: ${data.choice}\nCurrent stats: ${JSON.stringify(data.stats)}\nDecision history: ${data.decisionHistory.slice(-3).join("; ")}`,
+            content: `Crisis title: ${data.scenarioTitle}\nSituation: ${data.scenarioDescription}\n\nChoice locked in: ${data.choiceLabel}\nDraft outcome: ${data.suggestedOutcome}\nCurrent stats: ${JSON.stringify(data.stats)}\nRecent decisions: ${data.decisionHistory.slice(-5).join(" | ") || "None"}`,
           },
         ],
       });
 
-      if (!result.ok) return { followUp: null, newsHeadline: null };
+      if (!result.ok) {
+        console.error(`[finalizeDecision] Gemini error ${result.status}: ${result.message}`);
+        return {
+          appliedEffects: clampedFallback,
+          narrativeOutcome: data.suggestedOutcome,
+          followUp: null,
+          newsHeadline: wireHeadline(),
+          source: "fallback" as const,
+        };
+      }
 
       let parsed: unknown;
       try {
         parsed = JSON.parse(stripJsonMarkdown(result.text));
-      } catch {
-        return { followUp: result.text?.slice(0, 200) || null, newsHeadline: null };
+      } catch (e) {
+        console.error("[finalizeDecision] JSON parse error:", e);
+        return {
+          appliedEffects: clampedFallback,
+          narrativeOutcome: data.suggestedOutcome,
+          followUp: null,
+          newsHeadline: wireHeadline(),
+          source: "fallback" as const,
+        };
       }
 
       const p = parsed as Record<string, unknown>;
+      const eff = p.appliedEffects;
+      let appliedEffects = clampedFallback;
+      if (eff && typeof eff === "object" && !Array.isArray(eff)) {
+        const e = eff as Record<string, unknown>;
+        appliedEffects = {
+          diplomacy: clampEffect(e.diplomacy),
+          economy: clampEffect(e.economy),
+          security: clampEffect(e.security),
+          approval: clampEffect(e.approval),
+        };
+      }
+
       return {
-        followUp: typeof p.followUp === "string" ? p.followUp : null,
-        newsHeadline: typeof p.newsHeadline === "string" ? p.newsHeadline : null,
+        appliedEffects,
+        narrativeOutcome:
+          typeof p.narrativeOutcome === "string" && p.narrativeOutcome.trim()
+            ? p.narrativeOutcome.trim()
+            : data.suggestedOutcome,
+        followUp: typeof p.followUp === "string" && p.followUp.trim() ? p.followUp.trim() : null,
+        newsHeadline:
+          typeof p.newsHeadline === "string" && p.newsHeadline.trim() ? p.newsHeadline.trim() : wireHeadline(),
+        source: "ai" as const,
       };
-    } catch {
-      return { followUp: null, newsHeadline: null };
+    } catch (err) {
+      console.error("[finalizeDecision] Unexpected error:", err);
+      return {
+        appliedEffects: clampedFallback,
+        narrativeOutcome: data.suggestedOutcome,
+        followUp: null,
+        newsHeadline: wireHeadline(),
+        source: "fallback" as const,
+      };
     }
   });
 

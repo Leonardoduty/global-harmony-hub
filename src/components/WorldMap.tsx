@@ -5,8 +5,39 @@ import type { Topology, Objects } from "topojson-client";
 import { X, Loader as Loader2, TriangleAlert as AlertTriangle, Heart, Clock, User, Users, Wifi, WifiOff } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { getCountryInfo } from "@/functions/country.functions";
+import { getMockCountryInfo, type CountryInfo as MockCountryInfo } from "@/lib/mockCountryData";
 
-const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+const GEO_URLS = [
+  "/geo/countries-110m.json",
+  "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json",
+  "https://unpkg.com/world-atlas@2/countries-110m.json",
+];
+
+const SIM_STORAGE_KEY = "gp-presidential-sim-v2";
+
+function readPresidentialGameContext(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const raw = localStorage.getItem(SIM_STORAGE_KEY);
+    if (!raw) return undefined;
+    const o = JSON.parse(raw) as {
+      decisions?: string[];
+      stats?: Record<string, number>;
+    };
+    const decisions = o.decisions ?? [];
+    const stats = o.stats;
+    if (!decisions.length && !stats) return undefined;
+    return [
+      stats ? `Administration stats (0-100): ${JSON.stringify(stats)}` : "",
+      decisions.length ? `Recent decisions: ${decisions.slice(-8).join(" | ")}` : "",
+    ]
+      .filter(Boolean)
+      .join(". ");
+  } catch (e) {
+    console.warn("[WorldMap] Could not read presidential sim context:", e);
+    return undefined;
+  }
+}
 
 const hotspots = [
   { name: "Ukraine", coords: [30.5, 50.4] as [number, number], status: "conflict" },
@@ -22,16 +53,19 @@ type GeoFeature = {
   geometry: unknown;
 };
 
-type CountryInfo = {
-  name: string;
-  conflicts: { name: string; status: string; years: string; description: string }[];
-  peaceInitiatives: { name: string; year: string; description: string }[];
-  history: { year: string; event: string }[];
-  stabilityScore: number;
-  summary: string;
-  leader?: { name: string; title: string; personality: string; politicalStance: string };
-  relationships?: { allied: string[]; hostile: string[]; neutral: string[] };
-};
+type CountryInfo = MockCountryInfo;
+
+function namesMatch(mapName: string, listName: string): boolean {
+  const n = mapName.toLowerCase().trim();
+  const c = listName.toLowerCase().trim();
+  if (!n || !c) return false;
+  if (n === c) return true;
+  if (n.includes(c) || c.includes(n)) return true;
+  const strip = (s: string) => s.replace(/[^a-z0-9]/g, "");
+  const ns = strip(n);
+  const cs = strip(c);
+  return ns.length > 3 && cs.length > 3 && (ns.includes(cs) || cs.includes(ns));
+}
 
 function getRelationshipFill(
   countryName: string,
@@ -39,14 +73,14 @@ function getRelationshipFill(
 ): string {
   if (!relationships) return "oklch(0.82 0.06 90)";
   const n = countryName.toLowerCase();
-  if (relationships.allied.some((c) => c.toLowerCase() === n || n.includes(c.toLowerCase()) || c.toLowerCase().includes(n))) {
-    return "oklch(0.55 0.15 130)";
+  if (relationships.hostile.some((c) => namesMatch(n, c))) {
+    return "oklch(0.52 0.22 25)";
   }
-  if (relationships.hostile.some((c) => c.toLowerCase() === n || n.includes(c.toLowerCase()) || c.toLowerCase().includes(n))) {
-    return "oklch(0.55 0.22 25)";
+  if (relationships.allied.some((c) => namesMatch(n, c))) {
+    return "oklch(0.52 0.16 145)";
   }
-  if (relationships.neutral.some((c) => c.toLowerCase() === n || n.includes(c.toLowerCase()) || c.toLowerCase().includes(n))) {
-    return "oklch(0.75 0.15 85)";
+  if (relationships.neutral.some((c) => namesMatch(n, c))) {
+    return "oklch(0.78 0.16 95)";
   }
   return "oklch(0.82 0.06 90)";
 }
@@ -57,25 +91,52 @@ const MAP_HEIGHT = 400;
 function useWorldGeo() {
   const [features, setFeatures] = useState<GeoFeature[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetch(geoUrl)
-      .then((r) => r.json())
-      .then((topo: Topology<Objects<{ name?: string }>>) => {
-        if (cancelled) return;
-        const countries = feature(topo, topo.objects.countries as Parameters<typeof feature>[1]);
-        const feats = "features" in countries ? (countries.features as GeoFeature[]) : [];
-        setFeatures(feats);
+
+    const parseTopo = (topo: Topology<Objects<{ name?: string }>>) => {
+      const countries = feature(topo, topo.objects.countries as Parameters<typeof feature>[1]);
+      return "features" in countries ? (countries.features as GeoFeature[]) : [];
+    };
+
+    (async () => {
+      for (const url of GEO_URLS) {
+        try {
+          const r = await fetch(url);
+          if (!r.ok) {
+            console.warn(`[WorldMap] Geo HTTP ${r.status} for`, url);
+            continue;
+          }
+          const topo = (await r.json()) as Topology<Objects<{ name?: string }>>;
+          if (cancelled) return;
+          const feats = parseTopo(topo);
+          if (feats.length === 0) {
+            console.warn("[WorldMap] TopoJSON produced zero features from", url);
+            continue;
+          }
+          setFeatures(feats);
+          setGeoError(null);
+          setLoaded(true);
+          return;
+        } catch (e) {
+          console.error("[WorldMap] Geo fetch/parse failed:", url, e);
+        }
+      }
+      if (!cancelled) {
+        setGeoError("Failed to load country boundary data from all sources.");
+        setFeatures([]);
         setLoaded(true);
-      })
-      .catch(() => {
-        if (!cancelled) setLoaded(true);
-      });
-    return () => { cancelled = true; };
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  return { features, loaded };
+  return { features, loaded, geoError };
 }
 
 type Props = {
@@ -90,9 +151,36 @@ export default function WorldMap({ playerDiplomacy = 50 }: Props) {
   const [activeTab, setActiveTab] = useState<"conflicts" | "peace" | "history">("conflicts");
   const [dataSource, setDataSource] = useState<"ai" | "mock" | null>(null);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
+  const [loadWarning, setLoadWarning] = useState<string | null>(null);
+  const [countryFetchError, setCountryFetchError] = useState<string | null>(null);
+  const [simContextVersion, setSimContextVersion] = useState(0);
+  const [simContextActive, setSimContextActive] = useState(false);
 
-  const { features, loaded } = useWorldGeo();
+  const { features, loaded, geoError } = useWorldGeo();
   const getInfoFn = useServerFn(getCountryInfo);
+
+  useEffect(() => {
+    const bump = () => {
+      setSimContextActive(!!readPresidentialGameContext());
+      setSimContextVersion((v) => v + 1);
+    };
+    setSimContextActive(!!readPresidentialGameContext());
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === SIM_STORAGE_KEY) bump();
+    };
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("gp-sim-updated", bump);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("gp-sim-updated", bump);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedCountry || simContextVersion === 0) return;
+    void handleCountryClick(selectedCountry, { force: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [simContextVersion]);
 
   const projection = geoNaturalEarth1()
     .scale(MAP_WIDTH / (2 * Math.PI) * 0.9)
@@ -108,22 +196,47 @@ export default function WorldMap({ playerDiplomacy = 50 }: Props) {
   );
 
   const handleCountryClick = useCallback(
-    async (countryName: string) => {
-      if (loading) return;
+    async (countryName: string, opts?: { force?: boolean }) => {
+      if (!opts?.force && loading) return;
       setSelectedCountry(countryName);
       setCountryInfo(null);
       setLoading(true);
       setActiveTab("conflicts");
       setDataSource(null);
+      setLoadWarning(null);
+      setCountryFetchError(null);
+
+      const gameContext = readPresidentialGameContext();
 
       try {
-        const result = await getInfoFn({ data: { countryName } });
-        if (result.info) {
-          setCountryInfo(result.info as CountryInfo);
+        const result = await getInfoFn({
+          data: {
+            countryName,
+            ...(gameContext ? { gameContext } : {}),
+          },
+        });
+        const info = result?.info as CountryInfo | undefined;
+        const warn = (result as { loadWarning?: string | null })?.loadWarning;
+        if (info) {
+          setCountryInfo(info);
           setDataSource((result.source as "ai" | "mock") ?? "mock");
+          if (warn) {
+            setLoadWarning(warn);
+            console.warn("[WorldMap] Country briefing warning:", warn);
+          }
+        } else {
+          console.error("[WorldMap] Empty country response from server; using embedded mock.");
+          setCountryInfo(getMockCountryInfo(countryName));
+          setDataSource("mock");
+          setLoadWarning("Server returned no data — showing offline briefing.");
         }
       } catch (e) {
-        console.error("[WorldMap] Failed to load country info:", e);
+        const msg = e instanceof Error ? e.message : String(e);
+        console.error("[WorldMap] Failed to load country data:", e);
+        setCountryFetchError(msg);
+        setCountryInfo(getMockCountryInfo(countryName));
+        setDataSource("mock");
+        setLoadWarning("Failed to load country data — showing offline briefing so the map stays usable.");
       } finally {
         setLoading(false);
       }
@@ -135,27 +248,52 @@ export default function WorldMap({ playerDiplomacy = 50 }: Props) {
     setSelectedCountry(null);
     setCountryInfo(null);
     setDataSource(null);
+    setLoadWarning(null);
+    setCountryFetchError(null);
   };
 
   const relationships = countryInfo?.relationships;
 
   return (
     <div className="relative">
+      {(geoError || loadWarning || countryFetchError) && (
+        <div className="mb-2 rounded-md border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-foreground">
+          {geoError && (
+            <p>
+              <span className="font-mono font-semibold text-gold">Map data:</span> {geoError}
+            </p>
+          )}
+          {countryFetchError && (
+            <p className="mt-1">
+              <span className="font-mono font-semibold text-gold">Country API:</span> {countryFetchError}
+            </p>
+          )}
+          {loadWarning && (
+            <p className="mt-1 text-muted-foreground">
+              <span className="font-mono font-semibold">Notice:</span> {loadWarning}
+            </p>
+          )}
+        </div>
+      )}
+
       {relationships && (
         <div className="flex flex-wrap gap-3 mb-2 text-xs font-mono">
-          <span className="text-muted-foreground">Relationship view active —</span>
+          <span className="text-muted-foreground">Relationship view (selected focal state) —</span>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-primary inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "oklch(0.52 0.16 145)" }} />
             Allied
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-destructive inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "oklch(0.52 0.22 25)" }} />
             Hostile
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-gold inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "oklch(0.78 0.16 95)" }} />
             Neutral
           </div>
+          {simContextActive && (
+            <span className="text-muted-foreground">Presidential sim context is applied to AI relationship lists.</span>
+          )}
         </div>
       )}
 
@@ -163,6 +301,11 @@ export default function WorldMap({ playerDiplomacy = 50 }: Props) {
         {!loaded && (
           <div className="absolute inset-0 flex items-center justify-center">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+        {loaded && features.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center px-4 text-center text-xs font-mono text-muted-foreground bg-muted/40">
+            No boundary polygons available. Country insights still work from the panel when you click hotspots in the list below.
           </div>
         )}
         <svg
@@ -314,6 +457,23 @@ export default function WorldMap({ playerDiplomacy = 50 }: Props) {
 
               <p className="text-sm text-foreground leading-relaxed">{countryInfo.summary}</p>
 
+              {(countryInfo.currentSituation || countryInfo.playerRelationship) && (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {countryInfo.currentSituation && (
+                    <div className="rounded-md border border-border bg-muted/40 p-3">
+                      <p className="text-xs font-mono text-muted-foreground uppercase mb-1">Current situation</p>
+                      <p className="text-sm">{countryInfo.currentSituation}</p>
+                    </div>
+                  )}
+                  {countryInfo.playerRelationship && (
+                    <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+                      <p className="text-xs font-mono text-muted-foreground uppercase mb-1">Relationship with your administration</p>
+                      <p className="text-sm">{countryInfo.playerRelationship}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {countryInfo.relationships && (
                 <div className="space-y-1.5">
                   <p className="font-mono text-xs text-muted-foreground uppercase flex items-center gap-1">
@@ -454,11 +614,11 @@ export default function WorldMap({ playerDiplomacy = 50 }: Props) {
           ) : (
             <div className="flex flex-col items-center justify-center gap-3 py-12 px-4 text-center">
               <AlertTriangle className="w-8 h-8 text-gold" />
-              <p className="text-sm text-muted-foreground">Could not load data for {selectedCountry}.</p>
+              <p className="text-sm text-muted-foreground">Failed to load country data for {selectedCountry}.</p>
               <button
                 type="button"
                 className="gp-btn-secondary text-xs"
-                onClick={() => selectedCountry && handleCountryClick(selectedCountry)}
+                onClick={() => selectedCountry && handleCountryClick(selectedCountry, { force: true })}
               >
                 Retry
               </button>

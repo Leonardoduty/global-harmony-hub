@@ -13,9 +13,15 @@ export const Route = createFileRoute("/presidential-sim")({
 
 function PresidentialSimPage() {
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="gp-section-title mb-2">Presidential Simulation</h1>
-      <p className="text-muted-foreground mb-6">Make critical decisions as a world leader. Every choice has consequences.</p>
+    <div className="max-w-6xl mx-auto px-4 py-8 space-y-2">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 border-b border-border pb-6">
+        <div>
+          <h1 className="gp-section-title mb-2">Presidential Simulation</h1>
+          <p className="text-muted-foreground max-w-2xl text-sm leading-relaxed">
+            Command desk for an AI-driven term: dynamic crises, projected impacts, confirmed consequences, live wire copy, and visual history.
+          </p>
+        </div>
+      </div>
       <PresidentialSim />
     </div>
   );
