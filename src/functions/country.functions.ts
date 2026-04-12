@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { geminiGenerateFromMessages, getGeminiApiKey, stripJsonMarkdown } from "@/lib/gemini";
+import { getMockCountryInfo } from "@/lib/mockCountryData";
 
 function unwrapRecord(raw: unknown): Record<string, unknown> | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
@@ -24,16 +25,17 @@ function normalizeCountryInfo(raw: unknown, fallbackName: string) {
   const summary =
     typeof o.summary === "string" && o.summary.trim()
       ? o.summary.trim()
-      : "Geopolitical summary was not returned in the expected format; try again or pick another country.";
+      : "Geopolitical summary unavailable.";
 
   const mapConflict = (c: unknown) => {
     if (!c || typeof c !== "object") return null;
     const x = c as Record<string, unknown>;
-    const nm = typeof x.name === "string" ? x.name : "Conflict";
-    const st = typeof x.status === "string" ? x.status : "active";
-    const yrs = typeof x.years === "string" ? x.years : "";
-    const desc = typeof x.description === "string" ? x.description : "";
-    return { name: nm, status: st, years: yrs, description: desc };
+    return {
+      name: typeof x.name === "string" ? x.name : "Conflict",
+      status: typeof x.status === "string" ? x.status : "active",
+      years: typeof x.years === "string" ? x.years : "",
+      description: typeof x.description === "string" ? x.description : "",
+    };
   };
 
   const mapPeace = (p: unknown) => {
@@ -55,6 +57,29 @@ function normalizeCountryInfo(raw: unknown, fallbackName: string) {
     };
   };
 
+  const mapLeader = (l: unknown) => {
+    if (!l || typeof l !== "object") return undefined;
+    const x = l as Record<string, unknown>;
+    return {
+      name: typeof x.name === "string" ? x.name : "Unknown",
+      title: typeof x.title === "string" ? x.title : "Head of State",
+      personality: typeof x.personality === "string" ? x.personality : "",
+      politicalStance: typeof x.politicalStance === "string" ? x.politicalStance : "",
+    };
+  };
+
+  const mapRelationships = (r: unknown) => {
+    if (!r || typeof r !== "object") return undefined;
+    const x = r as Record<string, unknown>;
+    const toArr = (v: unknown) =>
+      Array.isArray(v) ? (v.filter((s) => typeof s === "string") as string[]) : [];
+    return {
+      allied: toArr(x.allied),
+      hostile: toArr(x.hostile),
+      neutral: toArr(x.neutral),
+    };
+  };
+
   const conflicts = Array.isArray(o.conflicts)
     ? (o.conflicts.map(mapConflict).filter(Boolean) as { name: string; status: string; years: string; description: string }[])
     : [];
@@ -64,15 +89,10 @@ function normalizeCountryInfo(raw: unknown, fallbackName: string) {
   const history = Array.isArray(o.history)
     ? (o.history.map(mapHist).filter(Boolean) as { year: string; event: string }[])
     : [];
+  const leader = mapLeader(o.leader);
+  const relationships = mapRelationships(o.relationships);
 
-  return {
-    name,
-    conflicts,
-    peaceInitiatives,
-    history,
-    stabilityScore,
-    summary,
-  };
+  return { name, conflicts, peaceInitiatives, history, stabilityScore, summary, leader, relationships };
 }
 
 export const getCountryInfo = createServerFn({ method: "POST" })
@@ -84,8 +104,11 @@ export const getCountryInfo = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }) => {
     const apiKey = getGeminiApiKey();
+
     if (!apiKey) {
-      return { info: null, error: "AI service not configured (set GEMINI_API_KEY)" };
+      console.warn("[CountryInfo] GEMINI_API_KEY not configured — serving mock data for:", data.countryName);
+      const mockInfo = getMockCountryInfo(data.countryName);
+      return { info: mockInfo, error: null, source: "mock" as const };
     }
 
     try {
@@ -99,19 +122,30 @@ export const getCountryInfo = createServerFn({ method: "POST" })
 {
   "name": "country name",
   "conflicts": [
-    { "name": "conflict name", "status": "active|resolved|frozen", "years": "e.g. 2022-present", "description": "1 sentence" }
+    { "name": "conflict name", "status": "active|resolved|frozen", "years": "e.g. 2022-present", "description": "1-2 sentences" }
   ],
   "peaceInitiatives": [
-    { "name": "initiative name", "year": "year", "description": "1 sentence" }
+    { "name": "initiative name", "year": "year or period", "description": "1-2 sentences" }
   ],
   "history": [
-    { "year": "year or period", "event": "brief historical event relevant to conflict/peace" }
+    { "year": "year or period", "event": "brief historical event" }
   ],
   "stabilityScore": number (0-100),
-  "summary": "2-3 sentence geopolitical summary"
+  "summary": "2-3 sentence geopolitical summary",
+  "leader": {
+    "name": "current leader name",
+    "title": "their official title",
+    "personality": "3-4 word personality description",
+    "politicalStance": "brief political stance"
+  },
+  "relationships": {
+    "allied": ["Country1", "Country2"],
+    "hostile": ["Country3"],
+    "neutral": ["Country4", "Country5"]
+  }
 }
 
-Include 2-5 items per category. Focus on real, factual data. For conflicts, include both internal and external. For peace, include treaties, agreements, and diplomatic efforts. History should cover key events from the last 50+ years relevant to the country's conflict/peace profile.`,
+Include 2-5 items per array. Focus on real, factual data. For stabilityScore: 0=failed state, 100=perfectly stable.`,
           },
           {
             role: "user",
@@ -121,24 +155,32 @@ Include 2-5 items per category. Focus on real, factual data. For conflicts, incl
       });
 
       if (!result.ok) {
-        console.error(`Country info API error: ${result.status} ${result.message}`);
-        return { info: null, error: "Failed to fetch country info" };
+        console.error(`[CountryInfo] Gemini API error ${result.status}: ${result.message} — falling back to mock data`);
+        const mockInfo = getMockCountryInfo(data.countryName);
+        return { info: mockInfo, error: null, source: "mock" as const };
       }
 
       const cleaned = stripJsonMarkdown(result.text);
       let parsed: unknown;
       try {
         parsed = JSON.parse(cleaned);
-      } catch {
-        return { info: null, error: "Invalid JSON from model" };
+      } catch (parseErr) {
+        console.error("[CountryInfo] JSON parse error:", parseErr, "Raw response:", cleaned.slice(0, 300));
+        const mockInfo = getMockCountryInfo(data.countryName);
+        return { info: mockInfo, error: null, source: "mock" as const };
       }
+
       const info = normalizeCountryInfo(parsed, data.countryName);
       if (!info) {
-        return { info: null, error: "Could not parse country analysis" };
+        console.warn("[CountryInfo] Normalization failed — falling back to mock data for:", data.countryName);
+        const mockInfo = getMockCountryInfo(data.countryName);
+        return { info: mockInfo, error: null, source: "mock" as const };
       }
-      return { info, error: null };
+
+      return { info, error: null, source: "ai" as const };
     } catch (error) {
-      console.error("Country info error:", error);
-      return { info: null, error: "Failed to analyze country" };
+      console.error("[CountryInfo] Unexpected server error:", error, "— falling back to mock data");
+      const mockInfo = getMockCountryInfo(data.countryName);
+      return { info: mockInfo, error: null, source: "mock" as const };
     }
   });
