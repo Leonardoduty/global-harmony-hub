@@ -9,25 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SituationRoomRouteImport } from './routes/situation-room'
-import { Route as PresidentialSimRouteImport } from './routes/presidential-sim'
-import { Route as NewsShieldRouteImport } from './routes/news-shield'
-import { Route as ConflictMapRouteImport } from './routes/conflict-map'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ConflictMapRouteImport } from './routes/conflict-map'
+import { Route as NewsShieldRouteImport } from './routes/news-shield'
+import { Route as PresidentialSimRouteImport } from './routes/presidential-sim'
+import { Route as SituationRoomRouteImport } from './routes/situation-room'
 
-const SituationRoomRoute = SituationRoomRouteImport.update({
-  id: '/situation-room',
-  path: '/situation-room',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PresidentialSimRoute = PresidentialSimRouteImport.update({
-  id: '/presidential-sim',
-  path: '/presidential-sim',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NewsShieldRoute = NewsShieldRouteImport.update({
-  id: '/news-shield',
-  path: '/news-shield',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConflictMapRoute = ConflictMapRouteImport.update({
@@ -35,9 +25,19 @@ const ConflictMapRoute = ConflictMapRouteImport.update({
   path: '/conflict-map',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const NewsShieldRoute = NewsShieldRouteImport.update({
+  id: '/news-shield',
+  path: '/news-shield',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PresidentialSimRoute = PresidentialSimRouteImport.update({
+  id: '/presidential-sim',
+  path: '/presidential-sim',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SituationRoomRoute = SituationRoomRouteImport.update({
+  id: '/situation-room',
+  path: '/situation-room',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -97,25 +97,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/situation-room': {
-      id: '/situation-room'
-      path: '/situation-room'
-      fullPath: '/situation-room'
-      preLoaderRoute: typeof SituationRoomRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/presidential-sim': {
-      id: '/presidential-sim'
-      path: '/presidential-sim'
-      fullPath: '/presidential-sim'
-      preLoaderRoute: typeof PresidentialSimRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/news-shield': {
-      id: '/news-shield'
-      path: '/news-shield'
-      fullPath: '/news-shield'
-      preLoaderRoute: typeof NewsShieldRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/conflict-map': {
@@ -125,11 +111,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConflictMapRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/news-shield': {
+      id: '/news-shield'
+      path: '/news-shield'
+      fullPath: '/news-shield'
+      preLoaderRoute: typeof NewsShieldRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/presidential-sim': {
+      id: '/presidential-sim'
+      path: '/presidential-sim'
+      fullPath: '/presidential-sim'
+      preLoaderRoute: typeof PresidentialSimRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/situation-room': {
+      id: '/situation-room'
+      path: '/situation-room'
+      fullPath: '/situation-room'
+      preLoaderRoute: typeof SituationRoomRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
