@@ -1,33 +1,39 @@
 import { useState } from "react";
-import { CheckCircle, XCircle, AlertTriangle, Search } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle, Search, Loader2, ExternalLink } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { factCheckStatement } from "@/functions/factcheck.functions";
 
-type Result = { verdict: "true" | "false" | "misleading"; explanation: string } | null;
+type Result = {
+  verdict: "true" | "false" | "misleading";
+  explanation: string;
+  confidence: number;
+  sources: string[];
+  relatedClaims: string[];
+} | null;
 
 export default function FactChecker() {
   const [statement, setStatement] = useState("");
   const [result, setResult] = useState<Result>(null);
   const [checking, setChecking] = useState(false);
+  const checkFn = useServerFn(factCheckStatement);
 
-  const check = () => {
-    if (!statement.trim()) return;
+  const check = async () => {
+    if (!statement.trim() || checking) return;
     setChecking(true);
     setResult(null);
 
-    setTimeout(() => {
-      const lower = statement.toLowerCase();
-      let verdict: Result;
-      if (lower.includes("flat") && lower.includes("earth")) {
-        verdict = { verdict: "false", explanation: "Scientific consensus confirms Earth is an oblate spheroid. This claim has been debunked by centuries of evidence including satellite imagery, physics, and direct observation." };
-      } else if (lower.includes("climate") || lower.includes("warming")) {
-        verdict = { verdict: "true", explanation: "Multiple peer-reviewed studies and global scientific organizations confirm anthropogenic climate change is occurring. The evidence is overwhelming across temperature records, ice cores, and atmospheric data." };
-      } else if (lower.includes("war") || lower.includes("peace")) {
-        verdict = { verdict: "misleading", explanation: "This statement contains elements of truth but lacks important context. Global conflict data requires nuanced analysis across multiple verified sources." };
+    try {
+      const res = await checkFn({ data: { statement } });
+      if (res.result) {
+        setResult(res.result);
       } else {
-        verdict = { verdict: "misleading", explanation: "This claim requires further verification. Our AI analysis cross-references multiple international databases and verified news sources to determine accuracy." };
+        setResult({ verdict: "misleading", explanation: "Unable to verify this statement at this time. Please try again.", confidence: 0, sources: [], relatedClaims: [] });
       }
-      setResult(verdict);
+    } catch {
+      setResult({ verdict: "misleading", explanation: "An error occurred during fact-checking. Please try again.", confidence: 0, sources: [], relatedClaims: [] });
+    } finally {
       setChecking(false);
-    }, 2000);
+    }
   };
 
   const icons = {
@@ -44,8 +50,8 @@ export default function FactChecker() {
 
   return (
     <div className="gp-card">
-      <h3 className="gp-card-header">Fact Checker</h3>
-      <p className="text-sm text-muted-foreground mb-3">Enter any statement to check its accuracy using AI analysis.</p>
+      <h3 className="gp-card-header">AI Fact Checker</h3>
+      <p className="text-sm text-muted-foreground mb-3">Enter any statement to fact-check using Gemini AI analysis.</p>
       <div className="flex gap-2">
         <input
           value={statement}
@@ -55,13 +61,13 @@ export default function FactChecker() {
           className="flex-1 bg-muted px-3 py-2 rounded-md text-sm outline-none focus:ring-2 focus:ring-ring"
         />
         <button onClick={check} disabled={checking} className="gp-btn-primary flex items-center gap-2">
-          <Search className="w-4 h-4" />
-          {checking ? "Checking..." : "Check"}
+          {checking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+          {checking ? "Analyzing..." : "Check"}
         </button>
       </div>
       {result && (
-        <div className="mt-4 p-4 bg-muted rounded-md border border-border">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="mt-4 p-4 bg-muted rounded-md border border-border space-y-3">
+          <div className="flex items-center gap-2">
             {icons[result.verdict]}
             <span className={`font-mono text-sm font-bold ${
               result.verdict === "true" ? "text-primary" :
@@ -69,9 +75,33 @@ export default function FactChecker() {
             }`}>
               {labels[result.verdict]}
             </span>
+            {result.confidence > 0 && (
+              <span className="ml-auto text-xs font-mono text-muted-foreground">
+                Confidence: {result.confidence}%
+              </span>
+            )}
           </div>
           <p className="text-sm text-foreground">{result.explanation}</p>
-          <p className="text-xs text-muted-foreground mt-2 font-mono">[AI Analysis — Cross-referenced with verified databases]</p>
+          {result.sources.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {result.sources.map((s, i) => (
+                <span key={i} className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <ExternalLink className="w-3 h-3" /> {s}
+                </span>
+              ))}
+            </div>
+          )}
+          {result.relatedClaims.length > 0 && (
+            <div className="border-t border-border pt-2">
+              <p className="text-xs font-mono text-muted-foreground uppercase mb-1">Related claims to check:</p>
+              {result.relatedClaims.map((c, i) => (
+                <button key={i} onClick={() => { setStatement(c); }} className="text-xs text-primary hover:underline block">
+                  → {c}
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground font-mono">[AI Analysis — Powered by Gemini]</p>
         </div>
       )}
     </div>

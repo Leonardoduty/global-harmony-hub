@@ -1,7 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
+import { callGemini, callGeminiImage } from "./gemini.server";
 
 export const generateScenario = createServerFn({ method: "POST" })
-  .inputValidator((input: { stats: Record<string, number>; previousDecisions: string[]; scenarioCount: number }) => {
+  .inputValidator((input: { stats: Record<string, number>; previousDecisions: string[]; scenarioCount: number; countryName?: string }) => {
     if (!input.stats || typeof input.scenarioCount !== "number") {
       throw new Error("Invalid input");
     }
@@ -11,67 +12,58 @@ export const generateScenario = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) {
-      return { scenario: null, error: "AI service not configured" };
-    }
-
     try {
-      const res = await fetch("https://ai-gateway.lovable.dev/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            {
-              role: "system",
-              content: `You are a presidential crisis scenario generator for a simulation game. Generate realistic, nuanced geopolitical scenarios. The player's current stats are: diplomacy=${data.stats.diplomacy}, economy=${data.stats.economy}, security=${data.stats.security}, approval=${data.stats.approval}.
+      const content = await callGemini({
+        systemPrompt: `You are a presidential crisis scenario generator for an immersive geopolitical simulation game. Generate realistic, nuanced scenarios. The player leads ${data.countryName || "a major nation"}.
 
-Their previous decisions: ${data.previousDecisions.slice(-5).join("; ") || "None yet"}.
+Current stats: diplomacy=${data.stats.diplomacy}, economy=${data.stats.economy}, security=${data.stats.security}, approval=${data.stats.approval}, military=${data.stats.military || 50}, international_relations=${data.stats.international_relations || 50}.
+
+Previous decisions: ${data.previousDecisions.slice(-8).join("; ") || "None yet"}.
 This is scenario #${data.scenarioCount + 1}.
 
-IMPORTANT: Generate scenarios that REACT to and BUILD UPON previous decisions, creating branching storylines. If they made aggressive choices, show escalation consequences. If diplomatic, show relationship building.
+CRITICAL RULES:
+- Generate scenarios that REACT to and BUILD UPON previous decisions
+- Include dialogue from advisors, foreign leaders, or citizens as quotes
+- Create escalating consequences and branching storylines
+- If a stat is critically low (<20), create urgent crises around it
+- Include unexpected global events (disasters, assassinations, economic crashes, pandemics)
+- Mix war/peace/politics/economics/social issues
 
 Respond in this exact JSON format:
 {
-  "title": "short crisis title",
-  "description": "2-3 sentence description of the crisis situation, referencing previous decisions if applicable",
+  "title": "crisis title",
+  "description": "3-4 sentence vivid description with advisor dialogue in quotes",
+  "category": "military|diplomatic|economic|social|environmental|political",
+  "urgency": "critical|high|medium",
+  "advisorQuote": {"name": "Advisor Name", "role": "role", "quote": "their advice"},
   "options": [
     {
-      "label": "short action label (5-8 words)",
-      "effects": { "diplomacy": number(-25 to 25), "economy": number(-25 to 25), "security": number(-25 to 25), "approval": number(-25 to 25) },
-      "outcome": "2-3 sentence outcome description"
+      "label": "action label (5-8 words)",
+      "effects": { "diplomacy": number(-30 to 30), "economy": number(-30 to 30), "security": number(-30 to 30), "approval": number(-30 to 30), "military": number(-30 to 30), "international_relations": number(-30 to 30) },
+      "outcome": "3-4 sentence dramatic outcome with consequences",
+      "newsHeadline": "Breaking news headline about this decision"
     }
-  ]
+  ],
+  "imagePrompt": "a short prompt for generating an illustration of this crisis scene (political, no violence)"
 }
 
-Generate exactly 3 options with different strategic approaches. Make effects realistic and balanced — no option should be clearly best. Consider the player's current stats when generating — if a stat is very low, create pressure around it.`,
-            },
-            {
-              role: "user",
-              content: `Generate scenario #${data.scenarioCount + 1} for the presidential simulation.`,
-            },
-          ],
-          response_format: { type: "json_object" },
-        }),
+Generate exactly 3 options with different strategic approaches.`,
+        userPrompt: `Generate scenario #${data.scenarioCount + 1} for the presidential simulation.`,
+        jsonMode: true,
+        temperature: 0.9,
       });
 
-      if (!res.ok) {
-        console.error(`AI API error: ${res.status}`);
-        return { scenario: null, error: "Failed to generate scenario" };
-      }
-
-      const json = await res.json();
-      const content = json.choices?.[0]?.message?.content;
-      if (!content) {
-        return { scenario: null, error: "Empty response" };
-      }
-
       const scenario = JSON.parse(content);
-      return { scenario, error: null };
+
+      // Try to generate an image for the scenario
+      let scenarioImage: string | null = null;
+      if (scenario.imagePrompt) {
+        scenarioImage = await callGeminiImage(
+          `Editorial illustration, political news style: ${scenario.imagePrompt}. Dark moody tones, professional news media aesthetic.`
+        );
+      }
+
+      return { scenario: { ...scenario, image: scenarioImage }, error: null };
     } catch (error) {
       console.error("Scenario generation error:", error);
       return { scenario: null, error: "Failed to generate scenario" };
@@ -79,39 +71,17 @@ Generate exactly 3 options with different strategic approaches. Make effects rea
   });
 
 export const generateOutcome = createServerFn({ method: "POST" })
-  .inputValidator((input: { scenario: string; choice: string; stats: Record<string, number> }) => {
+  .inputValidator((input: { scenario: string; choice: string; stats: Record<string, number>; newsHeadline?: string }) => {
     if (!input.scenario || !input.choice) throw new Error("Invalid input");
     return input;
   })
   .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) return { followUp: null };
-
     try {
-      const res = await fetch("https://ai-gateway.lovable.dev/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            {
-              role: "system",
-              content: "You are a presidential simulation narrator. Given a scenario and the player's choice, generate a brief (1-2 sentence) teaser about what consequences may follow in the next scenario. Be dramatic and foreboding.",
-            },
-            {
-              role: "user",
-              content: `Scenario: ${data.scenario}\nChoice: ${data.choice}\nCurrent stats: ${JSON.stringify(data.stats)}`,
-            },
-          ],
-        }),
+      const reply = await callGemini({
+        systemPrompt: "You are a presidential simulation narrator. Given a scenario and the player's choice, generate a dramatic 2-3 sentence teaser about consequences that will unfold. Be foreboding and cinematic. Also suggest what a news ticker might say.",
+        userPrompt: `Scenario: ${data.scenario}\nChoice: ${data.choice}\nCurrent stats: ${JSON.stringify(data.stats)}`,
       });
-
-      if (!res.ok) return { followUp: null };
-      const json = await res.json();
-      return { followUp: json.choices?.[0]?.message?.content || null };
+      return { followUp: reply };
     } catch {
       return { followUp: null };
     }

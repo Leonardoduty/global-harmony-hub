@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { callGemini } from "./gemini.server";
 
 export const getCountryInfo = createServerFn({ method: "POST" })
   .inputValidator((input: { countryName: string }) => {
@@ -8,24 +9,9 @@ export const getCountryInfo = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) {
-      return { info: null, error: "AI service not configured" };
-    }
-
     try {
-      const res = await fetch("https://ai-gateway.lovable.dev/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            {
-              role: "system",
-              content: `You are a geopolitical analyst. When given a country name, provide a concise analysis in this exact JSON format:
+      const content = await callGemini({
+        systemPrompt: `You are a geopolitical analyst. When given a country name, provide a detailed analysis in this exact JSON format:
 {
   "name": "country name",
   "conflicts": [
@@ -35,31 +21,26 @@ export const getCountryInfo = createServerFn({ method: "POST" })
     { "name": "initiative name", "year": "year", "description": "1 sentence" }
   ],
   "history": [
-    { "year": "year or period", "event": "brief historical event relevant to conflict/peace" }
+    { "year": "year or period", "event": "brief historical event" }
   ],
-  "stabilityScore": number (0-100),
+  "alliances": ["list of major alliances and organizations"],
+  "attributes": {
+    "stability": number(0-100),
+    "economicStrength": number(0-100),
+    "militaryStrength": number(0-100),
+    "diplomacyScore": number(0-100),
+    "politicalFreedom": number(0-100)
+  },
+  "economicStatus": "growing|stable|declining|crisis",
+  "politicalSystem": "description of government type",
+  "stabilityScore": number(0-100),
   "summary": "2-3 sentence geopolitical summary"
 }
 
-Include 2-5 items per category. Focus on real, factual data. For conflicts, include both internal and external. For peace, include treaties, agreements, and diplomatic efforts. History should cover key events from the last 50+ years relevant to the country's conflict/peace profile.`,
-            },
-            {
-              role: "user",
-              content: `Provide geopolitical analysis for: ${data.countryName}`,
-            },
-          ],
-          response_format: { type: "json_object" },
-        }),
+Include 2-5 items per category. Focus on real, factual data.`,
+        userPrompt: `Provide geopolitical analysis for: ${data.countryName}`,
+        jsonMode: true,
       });
-
-      if (!res.ok) {
-        console.error(`Country info API error: ${res.status}`);
-        return { info: null, error: "Failed to fetch country info" };
-      }
-
-      const json = await res.json();
-      const content = json.choices?.[0]?.message?.content;
-      if (!content) return { info: null, error: "Empty response" };
 
       const info = JSON.parse(content);
       return { info, error: null };
