@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Map, Shield, Zap, Users, AlertTriangle, ArrowRight } from "lucide-react";
+import { Map, Shield, Zap, Users, AlertTriangle, ArrowRight, Clock } from "lucide-react";
 import heroImg from "@/assets/hero-globe.jpg";
 import WorldMap from "@/components/WorldMap";
 
@@ -72,9 +72,6 @@ function Index() {
               <span className="gp-card-header mb-0">Global News Shield</span>
             </div>
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm">
-                <span className="font-mono text-xs text-muted-foreground">FACT CHECKLINE</span>
-              </div>
               <div className="bg-muted rounded-md p-3">
                 <div className="flex items-center gap-2 text-sm font-bold text-primary">✓ VERIFIED STORY</div>
                 <p className="text-xs text-muted-foreground font-mono mt-1">[AI Analysis]</p>
@@ -108,12 +105,24 @@ function Index() {
               Read Stories <ArrowRight className="w-4 h-4" />
             </div>
           </Link>
+
+          {/* Harmony Timeline — NEW */}
+          <Link to="/situation-room" className="gp-card group">
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="w-5 h-5 text-gold" />
+              <span className="gp-card-header mb-0">Harmony Timeline</span>
+            </div>
+            <p className="text-sm text-muted-foreground">Explore 200+ years of wars, peace treaties, and political milestones across nations.</p>
+            <div className="flex items-center gap-1 mt-4 text-sm text-primary font-semibold group-hover:gap-2 transition-all">
+              Explore History <ArrowRight className="w-4 h-4" />
+            </div>
+          </Link>
         </div>
       </section>
 
       {/* Footer */}
       <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground font-mono">
-        Developed in Gwalior, India | Data sourced from verified partners | © 2026 GLOBAL PULSE
+        © 2026 GLOBAL PULSE — Harmony Monitor | Powered by AI-driven geopolitical analysis
       </footer>
     </div>
   );
