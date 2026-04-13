@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { generateScenario, generateOutcome } from "@/functions/presidential.functions";
+import presidentImg from "@/assets/president-portrait.jpg";
 
 type Scenario = {
   title: string;
@@ -42,22 +43,19 @@ function loadState() {
 }
 
 function saveState(state: Record<string, unknown>) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch { /* ignore */ }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* ignore */ }
 }
 
 const fallbackScenarios: Scenario[] = [
   {
     title: "Border Crisis",
-    description: "Neighboring country reports mass refugee displacement. 50,000 civilians are heading toward your border. Your Defense Minister warns: \"We don't have the capacity, Mr. President.\"",
-    category: "humanitarian",
-    urgency: "critical",
+    description: "Neighboring country reports mass refugee displacement. 50,000 civilians are heading toward your border.",
+    category: "humanitarian", urgency: "critical",
     advisorQuote: { name: "Gen. Morrison", role: "Defense Secretary", quote: "We need a decision in the next 6 hours, or we lose control of the situation entirely." },
     options: [
-      { label: "Open borders & provide humanitarian aid", effects: { diplomacy: 20, economy: -10, security: -5, approval: 15, military: 0, international_relations: 15 }, outcome: "International praise pours in. Humanitarian organizations laud your decision. However, opposition parties raise concerns about resource strain.", newsHeadline: "President Opens Borders: Humanitarian Triumph or National Risk?" },
-      { label: "Deploy military to secure border", effects: { diplomacy: -15, economy: 5, security: 20, approval: -10, military: 10, international_relations: -15 }, outcome: "Border is secured but international community condemns the action. Sanctions are threatened by the UN Human Rights Council.", newsHeadline: "Military Deployed at Border: International Outcry Follows" },
-      { label: "Negotiate bilateral processing centers", effects: { diplomacy: 15, economy: -5, security: 10, approval: 10, military: 0, international_relations: 10 }, outcome: "Bilateral talks begin. A shared processing center is established. Both nations share the burden.", newsHeadline: "Historic Agreement: Joint Processing Centers Established" },
+      { label: "Open borders & provide humanitarian aid", effects: { diplomacy: 20, economy: -10, security: -5, approval: 15, military: 0, international_relations: 15 }, outcome: "International praise pours in. However, opposition parties raise concerns about resource strain.", newsHeadline: "President Opens Borders: Humanitarian Triumph or National Risk?" },
+      { label: "Deploy military to secure border", effects: { diplomacy: -15, economy: 5, security: 20, approval: -10, military: 10, international_relations: -15 }, outcome: "Border is secured but international community condemns the action.", newsHeadline: "Military Deployed at Border: International Outcry Follows" },
+      { label: "Negotiate bilateral processing centers", effects: { diplomacy: 15, economy: -5, security: 10, approval: 10, military: 0, international_relations: 10 }, outcome: "Bilateral talks begin. A shared processing center is established.", newsHeadline: "Historic Agreement: Joint Processing Centers Established" },
     ],
   },
 ];
@@ -78,29 +76,24 @@ const urgencyColors: Record<string, string> = {
 };
 
 const difficultyColors: Record<string, string> = {
-  Easy: "text-primary",
-  Medium: "text-gold",
-  Hard: "text-destructive",
+  Easy: "text-primary", Medium: "text-gold", Hard: "text-destructive",
 };
 
-/* ─── Country Selection Screen ─── */
+/* ─── Country Selection ─── */
 function CountrySelect({ onSelect }: { onSelect: (name: string) => void }) {
   return (
     <div className="space-y-6">
       <div className="text-center space-y-3">
-        <Crown className="w-10 h-10 mx-auto text-gold" />
+        <img src={presidentImg} alt="Presidential office" className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-primary shadow-lg" width={512} height={640} />
+        <Crown className="w-8 h-8 mx-auto text-gold" />
         <h2 className="font-display text-2xl font-black tracking-wide">Choose Your Nation</h2>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          Select the country you will lead as President. Each nation presents unique geopolitical challenges.
+          Select the country you will lead as President. Each nation presents unique challenges.
         </p>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {COUNTRIES.map((c) => (
-          <button
-            key={c.name}
-            onClick={() => onSelect(c.name)}
-            className="gp-card text-left group hover:ring-2 hover:ring-primary transition-all"
-          >
+          <button key={c.name} onClick={() => onSelect(c.name)} className="gp-card text-left group hover:ring-2 hover:ring-primary transition-all">
             <div className="text-3xl mb-2">{c.flag}</div>
             <div className="font-display font-bold text-sm">{c.name}</div>
             <div className={`text-xs font-mono ${difficultyColors[c.difficulty]}`}>{c.difficulty}</div>
@@ -121,10 +114,7 @@ function StatsDashboard({ stats }: { stats: Record<string, number> }) {
           <div className="font-mono text-[10px] text-muted-foreground uppercase">{s.label}</div>
           <div className="font-display text-xl font-bold">{stats[s.key]}</div>
           <div className="w-full bg-muted rounded-full h-1.5 mt-1">
-            <div
-              className={`${stats[s.key] <= 20 ? "bg-destructive" : s.color} h-1.5 rounded-full transition-all duration-700`}
-              style={{ width: `${stats[s.key]}%` }}
-            />
+            <div className={`${stats[s.key] <= 20 ? "bg-destructive" : s.color} h-1.5 rounded-full transition-all duration-700`} style={{ width: `${stats[s.key]}%` }} />
           </div>
         </div>
       ))}
@@ -132,111 +122,89 @@ function StatsDashboard({ stats }: { stats: Record<string, number> }) {
   );
 }
 
-/* ─── News Ticker ─── */
-function NewsTicker({ headlines }: { headlines: string[] }) {
-  if (headlines.length === 0) return null;
+/* ─── Advisor Speech Bubble ─── */
+function AdvisorBubble({ quote }: { quote: { name: string; role: string; quote: string } }) {
   return (
-    <div className="bg-muted rounded-md px-3 py-2 overflow-hidden">
-      <div className="flex items-center gap-2">
-        <Newspaper className="w-4 h-4 text-destructive shrink-0" />
-        <span className="font-mono text-xs text-destructive font-bold shrink-0">BREAKING:</span>
-        <div className="text-xs font-mono text-foreground truncate">{headlines[0]}</div>
+    <div className="flex items-start gap-3">
+      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-1">
+        <MessageSquareQuote className="w-5 h-5 text-primary" />
       </div>
-      {headlines.length > 1 && (
-        <div className="mt-1 text-[10px] font-mono text-muted-foreground truncate">
-          Earlier: {headlines[1]}
+      <div className="flex-1">
+        <div className="relative bg-muted rounded-xl rounded-tl-none px-4 py-3">
+          {/* Speech bubble tail */}
+          <div className="absolute -left-2 top-3 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[8px] border-r-muted" />
+          <p className="text-sm italic text-foreground leading-relaxed">"{quote.quote}"</p>
         </div>
-      )}
+        <p className="text-xs font-mono text-muted-foreground mt-1.5 ml-1">
+          — {quote.name}, {quote.role}
+        </p>
+      </div>
     </div>
   );
 }
 
 /* ─── Scenario Card ─── */
 function ScenarioCard({
-  scenario,
-  scenarioCount,
-  outcome,
-  chosenHeadline,
-  followUp,
-  onChoose,
-  onNext,
+  scenario, scenarioCount, outcome, chosenHeadline, followUp, onChoose, onNext,
 }: {
-  scenario: Scenario;
-  scenarioCount: number;
-  outcome: string | null;
-  chosenHeadline: string | null;
-  followUp: string | null;
-  onChoose: (opt: Scenario["options"][0]) => void;
-  onNext: () => void;
+  scenario: Scenario; scenarioCount: number;
+  outcome: string | null; chosenHeadline: string | null; followUp: string | null;
+  onChoose: (opt: Scenario["options"][0]) => void; onNext: () => void;
 }) {
   return (
-    <div className="gp-card space-y-4">
-      {/* Header badges */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="gp-badge">Scenario {scenarioCount + 1}</span>
-        {scenario.category && (
-          <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">{scenario.category}</span>
-        )}
-        {scenario.urgency && (
-          <span className={`text-xs font-mono px-2 py-0.5 rounded-full border ${urgencyColors[scenario.urgency] || ""}`}>
-            {scenario.urgency.toUpperCase()}
-          </span>
-        )}
-        <span className="text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary font-mono">AI Generated</span>
-      </div>
-
-      {/* Scenario Image */}
+    <div className="gp-card p-0 overflow-hidden">
+      {/* Scenario Image — large, immersive */}
       {scenario.image && (
-        <div className="rounded-md overflow-hidden border border-border">
-          <img src={scenario.image} alt={scenario.title} className="w-full h-52 object-cover" loading="lazy" />
-        </div>
+        <img src={scenario.image} alt={scenario.title} className="w-full h-56 md:h-64 object-cover" loading="lazy" />
       )}
 
-      <h3 className="font-display text-xl font-bold">{scenario.title}</h3>
-      <p className="text-sm text-foreground leading-relaxed">{scenario.description}</p>
+      <div className="p-5 space-y-4">
+        {/* Header badges */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="gp-badge">Scenario {scenarioCount + 1}</span>
+          {scenario.category && (
+            <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">{scenario.category}</span>
+          )}
+          {scenario.urgency && (
+            <span className={`text-xs font-mono px-2 py-0.5 rounded-full border ${urgencyColors[scenario.urgency] || ""}`}>
+              {scenario.urgency.toUpperCase()}
+            </span>
+          )}
+          <span className="text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary font-mono">AI Generated</span>
+        </div>
 
-      {/* Advisor Quote */}
-      {scenario.advisorQuote && (
-        <div className="bg-muted/50 rounded-md p-3 border-l-4 border-primary">
-          <div className="flex items-start gap-2">
-            <MessageSquareQuote className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm italic text-foreground">"{scenario.advisorQuote.quote}"</p>
-              <p className="text-xs font-mono text-muted-foreground mt-1">— {scenario.advisorQuote.name}, {scenario.advisorQuote.role}</p>
-            </div>
+        <h3 className="font-display text-xl font-bold">{scenario.title}</h3>
+        <p className="text-sm text-foreground leading-relaxed">{scenario.description}</p>
+
+        {/* Advisor Speech Bubble */}
+        {scenario.advisorQuote && <AdvisorBubble quote={scenario.advisorQuote} />}
+
+        {/* Options or Outcome */}
+        {!outcome ? (
+          <div className="space-y-2">
+            {scenario.options.map((opt, i) => (
+              <button key={i} onClick={() => onChoose(opt)} className="w-full text-left gp-btn-secondary text-sm group flex items-center justify-between">
+                <span className="font-bold">{opt.label}</span>
+                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+              </button>
+            ))}
           </div>
-        </div>
-      )}
-
-      {/* Options or Outcome */}
-      {!outcome ? (
-        <div className="space-y-2">
-          {scenario.options.map((opt, i) => (
-            <button
-              key={i}
-              onClick={() => onChoose(opt)}
-              className="w-full text-left gp-btn-secondary text-sm group flex items-center justify-between"
-            >
-              <span className="font-bold">{opt.label}</span>
-              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="bg-muted rounded-md p-4 space-y-3">
-          <p className="text-sm text-foreground leading-relaxed">{outcome}</p>
-          {chosenHeadline && (
-            <div className="flex items-center gap-2 bg-background rounded-md p-2 border border-border">
-              <Newspaper className="w-4 h-4 text-destructive shrink-0" />
-              <span className="text-xs font-mono text-foreground">{chosenHeadline}</span>
-            </div>
-          )}
-          {followUp && (
-            <p className="text-xs text-muted-foreground italic border-l-2 border-primary pl-3">{followUp}</p>
-          )}
-          <button onClick={onNext} className="gp-btn-primary text-sm">Next Scenario →</button>
-        </div>
-      )}
+        ) : (
+          <div className="bg-muted rounded-md p-4 space-y-3">
+            <p className="text-sm text-foreground leading-relaxed">{outcome}</p>
+            {chosenHeadline && (
+              <div className="flex items-center gap-2 bg-background rounded-md p-2 border border-border">
+                <Newspaper className="w-4 h-4 text-destructive shrink-0" />
+                <span className="text-xs font-mono text-foreground">{chosenHeadline}</span>
+              </div>
+            )}
+            {followUp && (
+              <p className="text-xs text-muted-foreground italic border-l-2 border-primary pl-3">{followUp}</p>
+            )}
+            <button onClick={onNext} className="gp-btn-primary text-sm">Next Scenario →</button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -261,100 +229,57 @@ export default function PresidentialSim() {
   const genOutcomeFn = useServerFn(generateOutcome);
 
   useEffect(() => {
-    if (countryName) {
-      saveState({ stats, decisions, scenarioCount, newsHeadlines, countryName });
-    }
+    if (countryName) saveState({ stats, decisions, scenarioCount, newsHeadlines, countryName });
   }, [stats, decisions, scenarioCount, newsHeadlines, countryName]);
 
   const loadScenario = useCallback(async () => {
-    setLoading(true);
-    setOutcome(null);
-    setFollowUp(null);
-    setChosenHeadline(null);
-
+    setLoading(true); setOutcome(null); setFollowUp(null); setChosenHeadline(null);
     try {
-      const result = await genScenarioFn({
-        data: { stats, previousDecisions: decisions, scenarioCount, countryName: countryName || undefined },
-      });
-      if (result.scenario) {
-        setScenario(result.scenario);
-        setLoading(false);
-        return;
-      }
-    } catch {
-      console.log("AI scenario gen failed, using fallback");
-    }
-
+      const result = await genScenarioFn({ data: { stats, previousDecisions: decisions, scenarioCount, countryName: countryName || undefined } });
+      if (result.scenario) { setScenario(result.scenario); setLoading(false); return; }
+    } catch { console.log("AI scenario gen failed, using fallback"); }
     setScenario(fallbackScenarios[scenarioCount % fallbackScenarios.length]);
     setLoading(false);
   }, [genScenarioFn, stats, decisions, scenarioCount, countryName]);
 
   useEffect(() => {
-    if (countryName && !scenario && !loading) {
-      loadScenario();
-    }
+    if (countryName && !scenario && !loading) loadScenario();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countryName]);
 
   const choose = async (option: Scenario["options"][0]) => {
     const newStats: Record<string, number> = {};
-    for (const key of Object.keys(stats)) {
-      newStats[key] = Math.max(0, Math.min(100, stats[key] + (option.effects[key] || 0)));
-    }
-    setStats(newStats);
-    setOutcome(option.outcome);
-    if (option.newsHeadline) {
-      setChosenHeadline(option.newsHeadline);
-      setNewsHeadlines((h) => [option.newsHeadline!, ...h].slice(0, 20));
-    }
+    for (const key of Object.keys(stats)) newStats[key] = Math.max(0, Math.min(100, stats[key] + (option.effects[key] || 0)));
+    setStats(newStats); setOutcome(option.outcome);
+    if (option.newsHeadline) { setChosenHeadline(option.newsHeadline); setNewsHeadlines((h) => [option.newsHeadline!, ...h].slice(0, 20)); }
     setDecisions((d) => [...d, `${scenario?.title}: ${option.label}`]);
     setScenarioCount((c: number) => c + 1);
-
     if (scenario) {
-      try {
-        const result = await genOutcomeFn({
-          data: { scenario: scenario.description, choice: option.label, stats: newStats, newsHeadline: option.newsHeadline },
-        });
-        if (result.followUp) setFollowUp(result.followUp);
-      } catch { /* ignore */ }
+      try { const result = await genOutcomeFn({ data: { scenario: scenario.description, choice: option.label, stats: newStats, newsHeadline: option.newsHeadline } }); if (result.followUp) setFollowUp(result.followUp); } catch { /* ignore */ }
     }
   };
 
   const resetGame = () => {
     setStats({ diplomacy: 50, economy: 50, security: 50, approval: 50, military: 50, international_relations: 50 });
-    setDecisions([]);
-    setScenarioCount(0);
-    setNewsHeadlines([]);
-    setCountryName(null);
-    setScenario(null);
-    setOutcome(null);
-    setFollowUp(null);
+    setDecisions([]); setScenarioCount(0); setNewsHeadlines([]); setCountryName(null); setScenario(null); setOutcome(null); setFollowUp(null);
     localStorage.removeItem(STORAGE_KEY);
-  };
-
-  const startCountry = (name: string) => {
-    setCountryName(name);
   };
 
   const gameOver = Object.values(stats).some((v) => v <= 0);
 
-  /* ─── Render ─── */
-
-  // Country selection screen
-  if (!countryName) {
-    return <CountrySelect onSelect={startCountry} />;
-  }
+  if (!countryName) return <CountrySelect onSelect={setCountryName} />;
 
   const selectedFlag = COUNTRIES.find((c) => c.name === countryName)?.flag || "🏳️";
 
   return (
     <div className="space-y-6">
-      {/* Country Badge + Stats */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">{selectedFlag}</span>
+      {/* Country Badge + Leader */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <img src={presidentImg} alt="President" className="w-12 h-12 rounded-full object-cover border-2 border-primary" width={512} height={640} />
           <div>
-            <div className="font-display font-bold text-sm flex items-center gap-1">
+            <div className="font-display font-bold text-sm flex items-center gap-1.5">
+              <span className="text-lg">{selectedFlag}</span>
               <MapPin className="w-3 h-3 text-muted-foreground" />
               {countryName}
             </div>
@@ -367,7 +292,17 @@ export default function PresidentialSim() {
       </div>
 
       <StatsDashboard stats={stats} />
-      <NewsTicker headlines={newsHeadlines} />
+
+      {/* News Ticker */}
+      {newsHeadlines.length > 0 && (
+        <div className="bg-muted rounded-md px-3 py-2">
+          <div className="flex items-center gap-2">
+            <Newspaper className="w-4 h-4 text-destructive shrink-0" />
+            <span className="font-mono text-xs text-destructive font-bold shrink-0">BREAKING:</span>
+            <div className="text-xs font-mono text-foreground truncate">{newsHeadlines[0]}</div>
+          </div>
+        </div>
+      )}
 
       {/* Game Over */}
       {gameOver && (
@@ -386,15 +321,7 @@ export default function PresidentialSim() {
             <span className="font-mono text-sm text-muted-foreground">Intelligence briefing incoming...</span>
           </div>
         ) : scenario ? (
-          <ScenarioCard
-            scenario={scenario}
-            scenarioCount={scenarioCount}
-            outcome={outcome}
-            chosenHeadline={chosenHeadline}
-            followUp={followUp}
-            onChoose={choose}
-            onNext={loadScenario}
-          />
+          <ScenarioCard scenario={scenario} scenarioCount={scenarioCount} outcome={outcome} chosenHeadline={chosenHeadline} followUp={followUp} onChoose={choose} onNext={loadScenario} />
         ) : null
       )}
 
@@ -402,8 +329,7 @@ export default function PresidentialSim() {
       {decisions.length > 0 && (
         <details className="gp-card">
           <summary className="font-display font-bold text-sm cursor-pointer flex items-center gap-2">
-            <Flag className="w-4 h-4 text-muted-foreground" />
-            Decision History ({decisions.length})
+            <Flag className="w-4 h-4 text-muted-foreground" /> Decision History ({decisions.length})
           </summary>
           <ul className="mt-3 space-y-1 text-xs font-mono text-muted-foreground">
             {decisions.map((d: string, i: number) => (

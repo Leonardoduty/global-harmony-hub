@@ -3,9 +3,7 @@ import { callGemini } from "./gemini.server";
 
 export const getCountryInfo = createServerFn({ method: "POST" })
   .inputValidator((input: { countryName: string }) => {
-    if (!input.countryName || input.countryName.length > 100) {
-      throw new Error("Invalid country name");
-    }
+    if (!input.countryName || input.countryName.length > 100) throw new Error("Invalid country name");
     return input;
   })
   .handler(async ({ data }) => {
@@ -47,5 +45,34 @@ Include 2-5 items per category. Focus on real, factual data.`,
     } catch (error) {
       console.error("Country info error:", error);
       return { info: null, error: "Failed to analyze country" };
+    }
+  });
+
+export const getCountryTimeline = createServerFn({ method: "POST" })
+  .inputValidator((input: { countryName: string }) => {
+    if (!input.countryName || input.countryName.length > 100) throw new Error("Invalid country name");
+    return input;
+  })
+  .handler(async ({ data }) => {
+    try {
+      const content = await callGemini({
+        systemPrompt: `You are a historian. Given a country, provide a chronological list of 15-25 major wars, peace treaties, and significant political events from 1800 to present.
+
+Return JSON array:
+[
+  { "year": "1812", "title": "War of 1812", "description": "1-2 sentence description", "type": "war|peace|political|economic" }
+]
+
+Focus on the most significant events. Include a mix of wars, peace treaties, independence events, and major political milestones. Order chronologically.`,
+        userPrompt: `Provide historical timeline for ${data.countryName} from 1800 to present.`,
+        jsonMode: true,
+        temperature: 0.5,
+      });
+
+      const timeline = JSON.parse(content);
+      return { timeline: Array.isArray(timeline) ? timeline : [], error: null };
+    } catch (error) {
+      console.error("Timeline error:", error);
+      return { timeline: null, error: "Failed to load timeline" };
     }
   });
