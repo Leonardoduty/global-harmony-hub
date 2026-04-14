@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Map, Shield, Zap, Users, AlertTriangle, ArrowRight } from "lucide-react";
+import { Map, Shield, Zap, Users, AlertTriangle, ArrowRight, Clock } from "lucide-react";
 import heroImg from "@/assets/hero-globe.jpg";
-import WorldMap from "@/components/WorldMap";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -12,6 +11,78 @@ export const Route = createFileRoute("/")({
   }),
   component: Index,
 });
+
+function MapPreview() {
+  const hotspots = [
+    { label: "Ukraine", x: "56%", y: "30%", color: "#ef4444" },
+    { label: "Sudan", x: "54%", y: "53%", color: "#ef4444" },
+    { label: "Gaza", x: "55%", y: "38%", color: "#f97316" },
+    { label: "Russia", x: "65%", y: "22%", color: "#dc2626" },
+    { label: "Myanmar", x: "76%", y: "44%", color: "#ef4444" },
+    { label: "China", x: "75%", y: "33%", color: "#f97316" },
+    { label: "USA", x: "18%", y: "33%", color: "#facc15" },
+    { label: "EU", x: "51%", y: "27%", color: "#22c55e" },
+  ];
+
+  return (
+    <div className="relative w-full rounded-lg overflow-hidden" style={{ aspectRatio: "2/1", background: "#05050f" }}>
+      <img
+        src="/world-terrain.png"
+        alt="World map"
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ opacity: 0.5, mixBlendMode: "luminosity" }}
+        draggable={false}
+      />
+      <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, rgba(180,10,10,0.08) 0%, rgba(5,5,15,0.4) 100%)" }} />
+
+      {hotspots.map((h) => (
+        <div
+          key={h.label}
+          className="absolute flex items-center gap-1"
+          style={{ left: h.x, top: h.y, transform: "translate(-50%,-50%)" }}
+        >
+          <span
+            className="w-2 h-2 rounded-full inline-block animate-pulse"
+            style={{ background: h.color, boxShadow: `0 0 6px ${h.color}` }}
+          />
+          <span className="font-mono text-[9px] text-white/60 hidden sm:inline">{h.label}</span>
+        </div>
+      ))}
+
+      <div
+        className="absolute top-2 right-2 flex flex-col items-center gap-1 px-2 py-1.5 rounded-lg"
+        style={{ background: "rgba(5,5,20,0.85)", border: "1px solid rgba(239,68,68,0.3)" }}
+      >
+        <Clock className="w-3 h-3 text-red-400" />
+        <span className="font-mono text-[9px] text-red-400 font-bold">1:45</span>
+        <span className="font-mono text-[7px] text-white/30">TO MIDNIGHT</span>
+      </div>
+
+      <div className="absolute bottom-2 left-2 flex gap-2">
+        {[
+          { color: "#ef4444", label: "Conflict" },
+          { color: "#facc15", label: "Elevated" },
+          { color: "#22c55e", label: "Stable" },
+        ].map((l) => (
+          <div key={l.label} className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: l.color }} />
+            <span className="font-mono text-[8px] text-white/40">{l.label}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div
+          className="font-mono text-xs text-white/40 flex items-center gap-2 px-3 py-1.5 rounded-full"
+          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
+        >
+          <Map className="w-3 h-3" />
+          Open Interactive Map
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function Index() {
   return (
@@ -42,7 +113,10 @@ function Index() {
               <Map className="w-5 h-5 text-primary" />
               <span className="gp-card-header mb-0">Global Situation Map</span>
             </div>
-            <WorldMap />
+            <MapPreview />
+            <div className="flex items-center gap-1 mt-3 text-sm text-primary font-semibold group-hover:gap-2 transition-all">
+              Open Intelligence Map <ArrowRight className="w-4 h-4" />
+            </div>
           </Link>
 
           {/* Emergency Briefing */}
