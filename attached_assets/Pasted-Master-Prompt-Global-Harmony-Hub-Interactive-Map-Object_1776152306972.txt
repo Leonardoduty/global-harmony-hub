@@ -1,0 +1,43 @@
+Master Prompt: Global-Harmony-Hub Interactive Map
+
+Objective: Develop a self-contained, high-performance world map application for "Global-Harmony-Hub" that functions entirely on hardcoded data (GeoJSON + Local Objects) to ensure zero-latency and 100% API-independent reliability.
+
+1. The Dual-State Map Engine:
+
+    Two Visual Modes: Create a global toggle to switch between "Doomsday Mode" (Aggressive reds, dark aesthetics, high-contrast terrain) and "Harmony Mode" (Soft blues, lush greens, ethereal glow).
+
+    Base Map: Overlay the provided physical world map image. Use SVG/GeoJSON boundaries to make every country clickable.
+
+    Hardcoded Data: Embed a complete dataset for all countries including:
+
+        Risk Metrics: (For Doomsday Mode)
+
+        Harmony Index: (Environmental score, peace treaty participation, and cultural exports).
+
+        Timelines: Individual country histories and a "Shared History" layer for global milestones.
+
+2. Harmony-Specific Features:
+
+    The "Pulse" Connectors: Implement animated Bezier curves (arcs) that travel between countries.
+
+        Interaction: Clicking a pulse reveals a "Harmony Fact" (e.g., "Country A and B signed a reforestation pact in 2024").
+
+    Collaborative Timeline: A specialized view that highlights "Global Synergy" events. When a user scrolls the timeline, the map should highlight all involved nations simultaneously.
+
+    Community "Vibe" Check: An interactive UI element allowing users to select a "Hope Level" (1-10).
+
+        Function: This data should persist locally and transform the map into a real-time heatmap of user sentiment per region.
+
+3. The Doomsday Widget:
+
+    A persistent Doomsday Clock in the header.
+
+    In "Doomsday Mode," the clock dictates the map's intensity. In "Harmony Mode," the clock recedes or transforms into a "Sustainability Countdown."
+
+4. Technical Execution:
+
+    Framework: Use Vanilla JS, React, or Vue with Leaflet.js or D3.js.
+
+    Fallback Logic: Hardcode all JSON objects directly into a data.js file to bypass all external API failures.
+
+    Assets: Integrate the provided image as a synchronized background layer.
