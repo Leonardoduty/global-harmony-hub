@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Shield, Zap, Heart, DollarSign, Loader as Loader2, RotateCcw, Sparkles } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useSimulation } from "@/context/SimulationContext";
 import {
   generateScenario,
   finalizeDecision,
@@ -66,6 +67,7 @@ const STAT_CONFIG = [
 ] as const;
 
 export default function PresidentialSim() {
+  const { selectedCountry } = useSimulation();
   const saved = loadState();
 
   const [stats, setStats] = useState<Record<string, number>>(
@@ -160,6 +162,7 @@ export default function PresidentialSim() {
           previousDecisions: decisions,
           scenarioCount,
           worldEvents: worldEvents.slice(-5),
+          country: selectedCountry?.name,
         },
       });
       if (result.scenario) {
@@ -457,14 +460,19 @@ export default function PresidentialSim() {
                     </div>
                   ) : (
                     <div className={`grid gap-0 ${illustrations.length > 1 ? "grid-cols-2" : ""}`}>
+                      <AnimatePresence>
                       {illustrations.map((src, i) => (
-                        <img
+                        <motion.img
                           key={`${i}-${src.slice(0, 30)}`}
                           src={src}
                           alt=""
                           className="w-full object-cover max-h-52"
+                          initial={{ opacity: 0, scale: 1.04 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.55, ease: "easeOut" }}
                         />
                       ))}
+                      </AnimatePresence>
                     </div>
                   )}
                 </div>
@@ -500,7 +508,14 @@ export default function PresidentialSim() {
                     <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-2">Outcome</div>
                     {outcomeImageUrl && (
                       <div className="rounded-md overflow-hidden border border-border mb-3">
-                        <img src={outcomeImageUrl} alt="" className="w-full max-h-48 object-cover" />
+                        <motion.img
+                          src={outcomeImageUrl}
+                          alt=""
+                          className="w-full max-h-48 object-cover"
+                          initial={{ opacity: 0, scale: 1.04 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.55, ease: "easeOut" }}
+                        />
                       </div>
                     )}
                     <p className="text-sm text-foreground leading-relaxed">{outcome}</p>

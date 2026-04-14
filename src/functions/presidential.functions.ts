@@ -76,6 +76,7 @@ export const generateScenario = createServerFn({ method: "POST" })
       previousDecisions: string[];
       scenarioCount: number;
       worldEvents?: string[];
+      country?: string;
     }) => {
       if (!input.stats || typeof input.scenarioCount !== "number") throw new Error("Invalid input");
       if (input.previousDecisions.length > 100) throw new Error("Too many previous decisions");
@@ -106,7 +107,7 @@ export const generateScenario = createServerFn({ method: "POST" })
           {
             role: "system",
             content: `You are a presidential crisis scenario generator for an immersive geopolitical simulation game. The player is acting as the head of state.
-
+${data.country ? `\nThe player is leading ${data.country}. All scenarios must be geopolitically relevant to ${data.country}'s real-world position, alliances, rivals, and domestic pressures.\n` : ""}
 Current player stats:
 - Diplomacy: ${data.stats.diplomacy}/100 (${data.stats.diplomacy < 30 ? "dangerously low" : data.stats.diplomacy > 70 ? "strong" : "moderate"})
 - Economy: ${data.stats.economy}/100 (${data.stats.economy < 30 ? "in recession" : data.stats.economy > 70 ? "thriving" : "stable"})

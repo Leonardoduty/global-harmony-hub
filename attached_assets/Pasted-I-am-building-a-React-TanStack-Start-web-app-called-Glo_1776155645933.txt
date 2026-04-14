@@ -1,0 +1,103 @@
+I am building a React + TanStack Start web app called "Global Harmony Hub".
+
+I want you to upgrade my "Presidential Simulator / Situation Room" with the following features:
+
+========================
+1. COUNTRY SELECTION SCREEN
+========================
+
+Before starting the simulation, the user must select a country.
+
+- Create a new "Country Selection" screen/page/modal.
+- Display 9 countries as selectable cards.
+
+Countries (with difficulty levels):
+1. USA — Easy
+2. China — Medium
+3. Russia — Hard
+4. India — Easy
+5. Germany — Medium
+6. UK — Medium
+7. North Korea — Hard
+8. Brazil — Easy
+9. Israel — Hard
+
+Each country card must include:
+- Country name
+- Difficulty badge (color-coded: Easy = green, Medium = yellow, Hard = red)
+- A representative leader/president image (realistic photo)
+
+Images:
+- Use royalty-free or AI-generated images
+- Each country must have a unique image
+- Style: realistic, professional, leadership portrait
+
+Interaction:
+- Clicking a country starts the simulation
+- Store selected country in global state (React state or context)
+
+========================
+2. AI-GENERATED SCENARIO IMAGES
+========================
+
+- Remove all static images from the Situation Room
+- Each scenario has:
+  imagePrompt: string
+
+- Use an AI image API (or mock if needed) to generate:
+  → cinematic, realistic crisis images
+
+- Display image at top of scenario panel
+
+Add:
+- Loading skeleton while generating
+- Fade-in animation when loaded
+- Cache images (do NOT regenerate every render)
+
+Fallback:
+- If image fails → show gradient/blur placeholder
+
+========================
+3. REMOVE CUSTOM MAP OVERRIDES
+========================
+
+- Remove any custom country map images or geo JSON overrides
+- Use the default map already supported in the app
+- Do NOT fetch external geo files
+
+========================
+4. UI ENHANCEMENTS
+========================
+
+- Add smooth transitions between:
+  → country selection → simulation
+- Add hover effects on country cards
+- Add slight zoom/parallax effect on scenario images
+- Keep a modern, "war room" / cyberpunk feel
+
+========================
+5. CODE SAFETY
+========================
+
+- Must be fully TypeScript-safe
+- Do NOT break existing components:
+  - PresidentialSim.tsx
+  - DecisionPreview.tsx
+
+- Fix any type mismatches if needed
+
+========================
+6. OUTPUT FORMAT
+========================
+
+- Show exact code changes
+- Clearly mention which files are created/edited
+- Ensure project builds without errors
+
+========================
+7. OPTIONAL (IMPORTANT)
+========================
+
+If API keys are required:
+→ Mock AI image generation using placeholder images for now
+→ Structure code so real API can be plugged later
