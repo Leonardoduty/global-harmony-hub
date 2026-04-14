@@ -1,8 +1,16 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
+import { Outlet, Link, createRootRoute, Scripts } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
 import Header from "@/components/Header";
 import HarmonyChatbot from "@/components/HarmonyChatbot";
+
+function ClientOnly({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  if (!mounted) return null;
+  return <>{children}</>;
+}
 
 function NotFoundComponent() {
   return (
@@ -13,7 +21,7 @@ function NotFoundComponent() {
           Page not found
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>
         <div className="mt-6">
           <Link
@@ -29,26 +37,6 @@ function NotFoundComponent() {
 }
 
 export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-    ],
-  }),
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
@@ -57,9 +45,14 @@ export const Route = createRootRoute({
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head suppressHydrationWarning>
-        <HeadContent />
-      </head>
+      {/*
+        Keep <head> empty on the server. Replit's devtools proxy injects a
+        <script> into <head> after SSR, which causes React hydration to fail
+        if we have any server-rendered head children.
+        suppressHydrationWarning + empty server head = no mismatch to crash on.
+        CSS and meta tags are injected client-side by RootComponent's useEffect.
+      */}
+      <head suppressHydrationWarning />
       <body suppressHydrationWarning>
         {children}
         <Scripts />
@@ -69,11 +62,23 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  useEffect(() => {
+    const meta1 = Object.assign(document.createElement("meta"), { charset: "utf-8" });
+    const meta2 = Object.assign(document.createElement("meta"), { name: "viewport", content: "width=device-width, initial-scale=1" });
+    const link = Object.assign(document.createElement("link"), { rel: "stylesheet", href: appCss });
+
+    if (!document.head.querySelector('meta[charset]')) document.head.prepend(meta1);
+    if (!document.head.querySelector('meta[name="viewport"]')) document.head.appendChild(meta2);
+    if (!document.head.querySelector(`link[href="${appCss}"]`)) document.head.appendChild(link);
+  }, []);
+
   return (
     <>
       <Header />
       <Outlet />
-      <HarmonyChatbot />
+      <ClientOnly>
+        <HarmonyChatbot />
+      </ClientOnly>
     </>
   );
 }
