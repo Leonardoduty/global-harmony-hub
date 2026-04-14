@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { callGemini } from "./gemini.server";
+import { callAI } from "./ai.server";
 
 export const generateNews = createServerFn({ method: "POST" })
   .inputValidator((input: { category?: string }) => {
@@ -7,7 +7,7 @@ export const generateNews = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }) => {
     try {
-      const content = await callGemini({
+      const content = await callAI({
         systemPrompt: `You are a verified news aggregator for a geopolitical monitoring platform. Generate realistic, factual-sounding global news stories. Respond in this exact JSON format:
 {
   "stories": [

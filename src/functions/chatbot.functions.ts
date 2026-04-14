@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { callGemini } from "./gemini.server";
+import { callAI } from "./ai.server";
 
 export const chatWithHarmony = createServerFn({ method: "POST" })
   .inputValidator((input: { messages: { role: string; content: string }[] }) => {
@@ -17,7 +17,7 @@ export const chatWithHarmony = createServerFn({ method: "POST" })
       .join("\n");
 
     try {
-      const reply = await callGemini({
+      const reply = await callAI({
         systemPrompt: `You are the Global Pulse Harmony Chatbot — a diplomatic AI assistant specializing in global conflicts, peace initiatives, diplomacy, and international relations. You provide factual, balanced analysis. Keep responses concise (2-4 sentences). You can discuss:
 - Active conflicts and their history
 - Peace treaties and diplomatic efforts

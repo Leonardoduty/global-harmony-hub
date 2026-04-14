@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
-import { X, Loader2, AlertTriangle, Heart, Clock, Shield, Swords, DollarSign, Globe2 } from "lucide-react";
+import {
+  X, Loader2, AlertTriangle, Heart, Clock, Shield, Swords, DollarSign,
+  Globe2, User, MapPin, Flag
+} from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { getCountryInfo } from "@/functions/country.functions";
+import { getCountryInfo, getCountryRelationships } from "@/functions/country.functions";
 
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
@@ -14,8 +17,27 @@ const hotspots = [
   { name: "New York (UN)", coords: [-74.0, 40.7] as [number, number], status: "peace" },
 ];
 
+// Country name mapping from topojson to standard names
+const COUNTRY_NAME_MAP: Record<string, string> = {
+  "United States of America": "United States",
+  "S. Korea": "South Korea",
+  "N. Korea": "North Korea",
+  "Dem. Rep. Congo": "Democratic Republic of the Congo",
+  "Central African Rep.": "Central African Republic",
+  "S. Sudan": "South Sudan",
+  "Bosnia and Herz.": "Bosnia and Herzegovina",
+  "Czech Rep.": "Czech Republic",
+  "Dominican Rep.": "Dominican Republic",
+  "Eq. Guinea": "Equatorial Guinea",
+  "W. Sahara": "Western Sahara",
+  "Falkland Is.": "Falkland Islands",
+  "Fr. S. Antarctic Lands": "French Southern Territories",
+  "Solomon Is.": "Solomon Islands",
+};
+
 type CountryInfo = {
   name: string;
+  leader?: { name: string; personality: string };
   conflicts: { name: string; status: string; years: string; description: string }[];
   peaceInitiatives: { name: string; year: string; description: string }[];
   history: { year: string; event: string }[];
@@ -31,6 +53,9 @@ type CountryInfo = {
   politicalSystem?: string;
   stabilityScore: number;
   summary: string;
+  relationships?: { allies: string[]; enemies: string[]; neutral: string[] };
+  politicalStance?: string;
+  currentSituation?: string;
 };
 
 function AttributeBar({ label, value, icon: Icon, color }: { label: string; value: number; icon: React.ComponentType<{ className?: string }>; color: string }) {
@@ -39,33 +64,85 @@ function AttributeBar({ label, value, icon: Icon, color }: { label: string; valu
       <Icon className="w-3 h-3 text-muted-foreground shrink-0" />
       <span className="w-20 font-mono text-muted-foreground">{label}</span>
       <div className="flex-1 bg-muted rounded-full h-1.5">
-        <div className={`${color} h-1.5 rounded-full transition-all`} style={{ width: `${value}%` }} />
+        <div className={`${color} h-1.5 rounded-full transition-all duration-700`} style={{ width: `${value}%` }} />
       </div>
       <span className="font-mono text-muted-foreground w-8 text-right">{value}</span>
     </div>
   );
 }
 
+const RELATIONSHIP_COLORS = {
+  ally: "oklch(0.55 0.15 130)",    // green
+  enemy: "oklch(0.55 0.22 25)",    // red
+  neutral: "oklch(0.75 0.15 85)",  // yellow/gold
+  default: "oklch(0.82 0.06 90)",  // khaki
+  selected: "oklch(0.45 0.1 130)", // dark green (selected country)
+};
+
 export default function WorldMap() {
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [countryInfo, setCountryInfo] = useState<CountryInfo | null>(null);
+  const [relationships, setRelationships] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [isFallback, setIsFallback] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "conflicts" | "peace" | "history">("overview");
 
   const getInfoFn = useServerFn(getCountryInfo);
+  const getRelFn = useServerFn(getCountryRelationships);
+
+  const normalizeCountryName = (name: string) => COUNTRY_NAME_MAP[name] || name;
+
+  const getCountryFill = useCallback((geoName: string) => {
+    const name = normalizeCountryName(geoName);
+    if (!selectedCountry || Object.keys(relationships).length === 0) return RELATIONSHIP_COLORS.default;
+    if (name === selectedCountry) return RELATIONSHIP_COLORS.selected;
+    const rel = relationships[name];
+    if (rel === "ally") return RELATIONSHIP_COLORS.ally;
+    if (rel === "enemy") return RELATIONSHIP_COLORS.enemy;
+    if (rel === "neutral") return RELATIONSHIP_COLORS.neutral;
+    return RELATIONSHIP_COLORS.default;
+  }, [selectedCountry, relationships]);
 
   const handleCountryClick = async (countryName: string) => {
     if (loading) return;
-    setSelectedCountry(countryName);
+    const normalized = normalizeCountryName(countryName);
+    setSelectedCountry(normalized);
     setCountryInfo(null);
+    setRelationships({});
     setLoading(true);
     setActiveTab("overview");
+    setIsFallback(false);
 
     try {
-      const result = await getInfoFn({ data: { countryName } });
-      if (result.info) setCountryInfo(result.info);
-    } catch {
-      console.error("Failed to load country info");
+      // Fetch country info and relationships in parallel
+      const [infoResult, relResult] = await Promise.all([
+        getInfoFn({ data: { countryName: normalized } }).catch((e) => {
+          console.error("Country info fetch failed:", e);
+          return null;
+        }),
+        getRelFn({ data: { countryName: normalized } }).catch((e) => {
+          console.error("Relationships fetch failed:", e);
+          return null;
+        }),
+      ]);
+
+      if (infoResult?.info) {
+        setCountryInfo(infoResult.info);
+        setIsFallback(!!infoResult.fallback);
+        // Use relationships from country info if dedicated endpoint failed
+        if (relResult?.relationships && Object.keys(relResult.relationships).length > 0) {
+          setRelationships(relResult.relationships);
+        } else if (infoResult.info.relationships) {
+          // Build from country info
+          const relMap: Record<string, string> = {};
+          for (const a of infoResult.info.relationships.allies || []) relMap[a] = "ally";
+          for (const e of infoResult.info.relationships.enemies || []) relMap[e] = "enemy";
+          for (const n of infoResult.info.relationships.neutral || []) relMap[n] = "neutral";
+          setRelationships(relMap);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load country data:", error);
     } finally {
       setLoading(false);
     }
@@ -77,21 +154,23 @@ export default function WorldMap() {
         <ComposableMap projectionConfig={{ scale: 140 }} className="w-full h-full">
           <Geographies geography={geoUrl}>
             {({ geographies }) =>
-              geographies.map((geo) => (
-                <Geography
-                  key={geo.rpiKey || geo.properties?.name}
-                  geography={geo}
-                  fill="oklch(0.82 0.06 90)"
-                  stroke="oklch(0.7 0.04 80)"
-                  strokeWidth={0.5}
-                  onClick={() => {
-                    const name = geo.properties?.name;
-                    if (name) handleCountryClick(name);
-                  }}
-                  style={{ hover: { fill: "oklch(0.7 0.1 130)" } }}
-                  className="cursor-pointer"
-                />
-              ))
+              geographies.map((geo) => {
+                const name = geo.properties?.name || "";
+                return (
+                  <Geography
+                    key={geo.rpiKey || name}
+                    geography={geo}
+                    fill={getCountryFill(name)}
+                    stroke="oklch(0.7 0.04 80)"
+                    strokeWidth={0.5}
+                    onClick={() => { if (name) handleCountryClick(name); }}
+                    style={{
+                      hover: { fill: "oklch(0.65 0.12 130)" },
+                    }}
+                    className="cursor-pointer"
+                  />
+                );
+              })
             }
           </Geographies>
           {hotspots.map((h) => (
@@ -112,12 +191,26 @@ export default function WorldMap() {
         </ComposableMap>
       </div>
 
+      {/* Legend */}
+      {selectedCountry && Object.keys(relationships).length > 0 && (
+        <div className="flex gap-4 mt-3 text-xs font-mono flex-wrap">
+          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full" style={{ background: RELATIONSHIP_COLORS.ally }} /> Allied</div>
+          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full" style={{ background: RELATIONSHIP_COLORS.enemy }} /> Hostile</div>
+          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full" style={{ background: RELATIONSHIP_COLORS.neutral }} /> Neutral</div>
+          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full" style={{ background: RELATIONSHIP_COLORS.selected }} /> Selected</div>
+        </div>
+      )}
+
       {/* Country Info Panel */}
       {selectedCountry && (
-        <div className="absolute top-0 right-0 w-full md:w-[420px] h-full bg-card border border-border rounded-lg shadow-2xl overflow-y-auto z-10">
+        <div className="absolute top-0 right-0 w-full md:w-[440px] h-full bg-card border border-border rounded-lg shadow-2xl overflow-y-auto z-10">
           <div className="sticky top-0 bg-primary text-primary-foreground px-4 py-3 flex items-center justify-between z-20">
-            <h3 className="font-display font-bold text-sm tracking-wide">{selectedCountry}</h3>
-            <button onClick={() => { setSelectedCountry(null); setCountryInfo(null); }}><X className="w-4 h-4" /></button>
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4" />
+              <h3 className="font-display font-bold text-sm tracking-wide">{selectedCountry}</h3>
+              {isFallback && <span className="text-[10px] font-mono bg-gold/30 text-gold px-1.5 py-0.5 rounded">OFFLINE DATA</span>}
+            </div>
+            <button onClick={() => { setSelectedCountry(null); setCountryInfo(null); setRelationships({}); }}><X className="w-4 h-4" /></button>
           </div>
 
           {loading ? (
@@ -127,6 +220,19 @@ export default function WorldMap() {
             </div>
           ) : countryInfo ? (
             <div className="p-4 space-y-4">
+              {/* Leader */}
+              {countryInfo.leader && (
+                <div className="flex items-start gap-3 bg-muted/50 rounded-md p-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                    <User className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <div className="font-display font-bold text-sm">{countryInfo.leader.name}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{countryInfo.leader.personality}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Stability Score */}
               <div className="text-center">
                 <div className="font-mono text-xs text-muted-foreground uppercase">Stability Score</div>
@@ -148,6 +254,20 @@ export default function WorldMap() {
                 )}
               </div>
 
+              {/* Political Stance & Situation */}
+              {countryInfo.politicalStance && (
+                <div className="bg-muted/30 rounded-md p-3 border-l-2 border-primary">
+                  <p className="text-xs font-mono text-muted-foreground uppercase mb-1">Political Stance</p>
+                  <p className="text-sm text-foreground">{countryInfo.politicalStance}</p>
+                </div>
+              )}
+              {countryInfo.currentSituation && (
+                <div className="bg-muted/30 rounded-md p-3 border-l-2 border-gold">
+                  <p className="text-xs font-mono text-muted-foreground uppercase mb-1">Current Situation</p>
+                  <p className="text-sm text-foreground">{countryInfo.currentSituation}</p>
+                </div>
+              )}
+
               <p className="text-sm text-foreground">{countryInfo.summary}</p>
 
               {/* Attributes */}
@@ -158,6 +278,34 @@ export default function WorldMap() {
                   <AttributeBar label="Diplomacy" value={countryInfo.attributes.diplomacyScore} icon={Globe2} color="bg-primary" />
                   <AttributeBar label="Stability" value={countryInfo.attributes.stability} icon={Shield} color="bg-accent" />
                   <AttributeBar label="Freedom" value={countryInfo.attributes.politicalFreedom} icon={Heart} color="bg-primary" />
+                </div>
+              )}
+
+              {/* Relationships Summary */}
+              {countryInfo.relationships && (
+                <div className="space-y-2">
+                  <p className="text-xs font-mono text-muted-foreground uppercase">Diplomatic Relationships</p>
+                  {countryInfo.relationships.allies.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {countryInfo.relationships.allies.map((a, i) => (
+                        <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary cursor-pointer hover:bg-primary/25 transition-colors" onClick={() => handleCountryClick(a)}>🟢 {a}</span>
+                      ))}
+                    </div>
+                  )}
+                  {countryInfo.relationships.enemies.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {countryInfo.relationships.enemies.map((e, i) => (
+                        <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-destructive/15 text-destructive cursor-pointer hover:bg-destructive/25 transition-colors" onClick={() => handleCountryClick(e)}>🔴 {e}</span>
+                      ))}
+                    </div>
+                  )}
+                  {countryInfo.relationships.neutral.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {countryInfo.relationships.neutral.map((n, i) => (
+                        <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-gold/15 text-gold cursor-pointer hover:bg-gold/25 transition-colors" onClick={() => handleCountryClick(n)}>🟡 {n}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -251,8 +399,9 @@ export default function WorldMap() {
               )}
             </div>
           ) : (
-            <div className="flex items-center justify-center py-16">
-              <p className="text-sm text-muted-foreground">Failed to load data. Click another country.</p>
+            <div className="flex flex-col items-center justify-center py-16 gap-3 px-6">
+              <AlertTriangle className="w-6 h-6 text-gold" />
+              <p className="text-sm text-muted-foreground text-center">Could not load data for this country. Try clicking another country on the map.</p>
             </div>
           )}
         </div>

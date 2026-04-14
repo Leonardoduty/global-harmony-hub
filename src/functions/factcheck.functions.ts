@@ -1,26 +1,24 @@
 import { createServerFn } from "@tanstack/react-start";
-import { callGemini } from "./gemini.server";
+import { callAI } from "./ai.server";
 
 export const factCheckStatement = createServerFn({ method: "POST" })
   .inputValidator((input: { statement: string }) => {
-    if (!input.statement || input.statement.length > 1000) {
-      throw new Error("Invalid statement");
-    }
+    if (!input.statement || input.statement.length > 2000) throw new Error("Invalid statement");
     return input;
   })
   .handler(async ({ data }) => {
     try {
-      const content = await callGemini({
-        systemPrompt: `You are an expert fact-checker. Analyze the given statement and determine its accuracy. Respond in this exact JSON format:
+      const content = await callAI({
+        systemPrompt: `You are a professional fact-checker. Analyze the given statement and respond in this exact JSON format:
 {
-  "verdict": "true" | "false" | "misleading",
-  "explanation": "3-4 sentence detailed explanation with evidence",
+  "verdict": "TRUE|FALSE|PARTIALLY TRUE|UNVERIFIABLE",
   "confidence": number(0-100),
-  "sources": ["list of 2-3 credible source types that support your analysis"],
-  "relatedClaims": ["1-2 related claims worth checking"]
+  "explanation": "2-3 sentence explanation",
+  "sources": ["list of relevant source types or organizations"],
+  "context": "1 sentence additional context"
 }
 
-Be thorough, factual, and cite the basis for your judgment.`,
+Be thorough and balanced in your analysis.`,
         userPrompt: `Fact-check this statement: "${data.statement}"`,
         jsonMode: true,
         temperature: 0.3,
@@ -30,6 +28,6 @@ Be thorough, factual, and cite the basis for your judgment.`,
       return { result, error: null };
     } catch (error) {
       console.error("Fact check error:", error);
-      return { result: null, error: "Failed to fact-check" };
+      return { result: null, error: "Failed to analyze statement" };
     }
   });
