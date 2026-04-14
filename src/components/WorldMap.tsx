@@ -165,9 +165,7 @@ export default function WorldMap() {
                     strokeWidth={0.5}
                     onClick={() => { if (name) handleCountryClick(name); }}
                     style={{
-                      default: { outline: "none", transition: "fill 0.3s ease" },
-                      hover: { fill: "oklch(0.65 0.12 130)", outline: "none", cursor: "pointer" },
-                      pressed: { outline: "none" },
+                      hover: { fill: "oklch(0.65 0.12 130)" },
                     }}
                     className="cursor-pointer"
                   />
