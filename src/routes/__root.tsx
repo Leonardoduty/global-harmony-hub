@@ -66,10 +66,15 @@ function RootComponent() {
     const meta1 = Object.assign(document.createElement("meta"), { charset: "utf-8" });
     const meta2 = Object.assign(document.createElement("meta"), { name: "viewport", content: "width=device-width, initial-scale=1" });
     const link = Object.assign(document.createElement("link"), { rel: "stylesheet", href: appCss });
+    const fonts = Object.assign(document.createElement("link"), {
+      rel: "stylesheet",
+      href: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Source+Sans+3:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap",
+    });
 
     if (!document.head.querySelector('meta[charset]')) document.head.prepend(meta1);
     if (!document.head.querySelector('meta[name="viewport"]')) document.head.appendChild(meta2);
     if (!document.head.querySelector(`link[href="${appCss}"]`)) document.head.appendChild(link);
+    if (!document.head.querySelector('link[href*="googleapis"]')) document.head.appendChild(fonts);
   }, []);
 
   return (
