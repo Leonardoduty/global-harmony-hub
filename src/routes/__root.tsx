@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import HarmonyChatbot from "@/components/HarmonyChatbot";
-import DebugPanel from "@/components/DebugPanel";
 
 function ClientOnly({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
@@ -17,7 +16,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {children}
       <ClientOnly>
         <HarmonyChatbot />
-        <DebugPanel />
       </ClientOnly>
     </>
   );
