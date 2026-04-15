@@ -146,6 +146,17 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+app.get("/", (req, res) => {
+  res.json({
+    status: "Global Pulse API Running 🚀",
+    endpoints: [
+      "/api/engine",
+      "/api/health",
+      "/api/debug/logs"
+    ]
+  });
+});
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log("🔥 ABOUT TO START SERVER");
   const aiKey = process.env.OPENAI_API_KEY?.trim();
