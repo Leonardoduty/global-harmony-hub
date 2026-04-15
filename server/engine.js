@@ -1,4 +1,4 @@
-import { openAIChat, stripJsonFences, getOpenAIKey } from "./openai.js";
+import { callAI, stripJsonFences, getProviderStatus } from "./openai.js";
 import {
   getWorldState,
   updateWorldState,
@@ -26,16 +26,15 @@ export async function handleChat({ messages, advisor = "General" }) {
   const worldContext = getWorldStateSnapshot();
   const prompt = ADVISOR_PROMPTS[advisor] ?? ADVISOR_PROMPTS["General"];
 
-  const result = await openAIChat({
-    temperature: 0.75,
-    messages: [
-      {
-        role: "system",
-        content: `${prompt}\n\n${worldContext}\n\nIf asked something outside geopolitics, politely redirect.`,
-      },
-      ...messages.map((m) => ({ role: m.role, content: m.content })),
-    ],
-  });
+  const builtMessages = [
+    {
+      role: "system",
+      content: `${prompt}\n\n${worldContext}\n\nIf asked something outside geopolitics, politely redirect.`,
+    },
+    ...messages.map((m) => ({ role: m.role, content: m.content })),
+  ];
+
+  const result = await callAI(builtMessages, { temperature: 0.75 });
 
   if (!result.ok) {
     return {
@@ -43,24 +42,32 @@ export async function handleChat({ messages, advisor = "General" }) {
       confidence: 0,
       advisor,
       ai_used: false,
-      error: result.message,
       model: null,
+      provider: "none",
+      ai_flow: result.ai_flow,
+      error: result.message,
     };
   }
 
-  return { reply: result.text, confidence: 0.92, advisor, ai_used: true, model: result.model, error: null };
+  return {
+    reply: result.text,
+    confidence: 0.92,
+    advisor,
+    ai_used: true,
+    model: result.model,
+    provider: result.provider,
+    ai_flow: result.ai_flow,
+    error: null,
+  };
 }
 
 export async function handleVerifyNews({ headline, content }) {
   const worldContext = getWorldStateSnapshot();
 
-  const result = await openAIChat({
-    json: true,
-    temperature: 0.3,
-    messages: [
-      {
-        role: "system",
-        content: `You are a news verification AI for the Global Governance Simulator. Assess news credibility against the current world state.
+  const builtMessages = [
+    {
+      role: "system",
+      content: `You are a news verification AI for the Global Governance Simulator. Assess news credibility against the current world state.
 
 ${worldContext}
 
@@ -75,39 +82,39 @@ Respond ONLY with JSON (no markdown):
 }
 
 Scoring: 80-100=Verified, 50-79=Unverified, 20-49=Misleading, 0-19=Fake`,
-      },
-      {
-        role: "user",
-        content: `Verify:\nHEADLINE: "${headline}"${content ? `\nCONTENT: ${content}` : ""}`,
-      },
-    ],
-  });
+    },
+    {
+      role: "user",
+      content: `Verify:\nHEADLINE: "${headline}"${content ? `\nCONTENT: ${content}` : ""}`,
+    },
+  ];
+
+  const result = await callAI(builtMessages, { json: true, temperature: 0.3 });
 
   const fallback = {
     verified: false, credibility_score: 50, classification: "Unverified",
     reason: "AI verification unavailable. Try again later.", key_claims: [], confidence: 0,
   };
 
-  if (!result.ok) return { result: fallback, ai_used: false, model: null, error: result.message };
+  if (!result.ok) {
+    return { result: fallback, ai_used: false, model: null, provider: "none", ai_flow: result.ai_flow, error: result.message };
+  }
 
   try {
     const parsed = JSON.parse(stripJsonFences(result.text));
-    return { result: parsed, ai_used: true, model: result.model, error: null };
+    return { result: parsed, ai_used: true, model: result.model, provider: result.provider, ai_flow: result.ai_flow, error: null };
   } catch {
-    return { result: fallback, ai_used: false, model: null, error: "JSON parse failed" };
+    return { result: fallback, ai_used: false, model: null, provider: result.provider, ai_flow: result.ai_flow, error: "JSON parse failed" };
   }
 }
 
 export async function handleGenerateHeadlines({ recentDecisions = [] }) {
   const worldContext = getWorldStateSnapshot();
 
-  const result = await openAIChat({
-    json: true,
-    temperature: 0.9,
-    messages: [
-      {
-        role: "system",
-        content: `You are a global news wire generator for the Global Governance Simulator.
+  const builtMessages = [
+    {
+      role: "system",
+      content: `You are a global news wire generator for the Global Governance Simulator.
 
 ${worldContext}
 Recent player decisions: ${recentDecisions.slice(-3).join("; ") || "None"}
@@ -116,47 +123,47 @@ Respond ONLY with JSON:
 { "headlines": [{ "headline": "...", "source": "Reuters|AP|BBC|AFP|Al Jazeera", "category": "diplomacy|military|economy|humanitarian|security", "credibility": number(75-100), "time": "Xh ago" }] }
 
 Generate 5 headlines. Vary timestamps 1-24h ago.`,
-      },
-      { role: "user", content: "Generate current headlines." },
-    ],
-  });
+    },
+    { role: "user", content: "Generate current headlines." },
+  ];
 
-  if (!result.ok) return { headlines: FALLBACK_HEADLINES, source: "fallback", ai_used: false, model: null, error: result.message };
+  const result = await callAI(builtMessages, { json: true, temperature: 0.9 });
+
+  if (!result.ok) {
+    return { headlines: FALLBACK_HEADLINES, source: "fallback", ai_used: false, model: null, provider: "none", ai_flow: result.ai_flow, error: result.message };
+  }
 
   try {
     const parsed = JSON.parse(stripJsonFences(result.text));
     const headlines = Array.isArray(parsed.headlines) && parsed.headlines.length > 0
       ? parsed.headlines
       : FALLBACK_HEADLINES;
-    return { headlines, source: "ai", ai_used: true, model: result.model, error: null };
+    return { headlines, source: "ai", ai_used: true, model: result.model, provider: result.provider, ai_flow: result.ai_flow, error: null };
   } catch {
-    return { headlines: FALLBACK_HEADLINES, source: "fallback", ai_used: false, model: null, error: "JSON parse failed" };
+    return { headlines: FALLBACK_HEADLINES, source: "fallback", ai_used: false, model: null, provider: result.provider, ai_flow: result.ai_flow, error: "JSON parse failed" };
   }
 }
 
 export async function handleWorldState({ action = "get", patch = null }) {
   if (action === "patch" && patch && typeof patch === "object") {
     const { state, changes } = updateWorldState(patch);
-    return { state, changes, action: "patch" };
+    return { state, changes, action: "patch", ai_used: false };
   }
   if (action === "reset") {
     const state = resetWorldState();
-    return { state, action: "reset" };
+    return { state, action: "reset", ai_used: false };
   }
-  return { state: getWorldState(), action: "get" };
+  return { state: getWorldState(), action: "get", ai_used: false };
 }
 
 export async function handleCountryInfo({ countryName, gameContext = "" }) {
   const worldContext = getWorldStateSnapshot();
   const contextBlock = gameContext ? `\n\nPlayer game context: ${gameContext}` : "";
 
-  const result = await openAIChat({
-    json: true,
-    temperature: 0.6,
-    messages: [
-      {
-        role: "system",
-        content: `You are a geopolitical intelligence analyst for the Global Governance Simulator. Provide a detailed JSON brief on the given country.
+  const builtMessages = [
+    {
+      role: "system",
+      content: `You are a geopolitical intelligence analyst for the Global Governance Simulator. Provide a detailed JSON brief on the given country.
 
 ${worldContext}${contextBlock}
 
@@ -173,10 +180,11 @@ Respond ONLY with this JSON:
   "leader": { "name": "...", "title": "...", "personality": "3-4 words", "politicalStance": "brief stance" },
   "relationships": { "allied": ["Country1"], "hostile": ["Country2"], "neutral": ["Country3"] }
 }`,
-      },
-      { role: "user", content: `Provide geopolitical analysis for: ${countryName}` },
-    ],
-  });
+    },
+    { role: "user", content: `Provide geopolitical analysis for: ${countryName}` },
+  ];
+
+  const result = await callAI(builtMessages, { json: true, temperature: 0.6 });
 
   const fallback = {
     name: countryName, summary: "Intelligence data unavailable for this region.",
@@ -186,13 +194,15 @@ Respond ONLY with this JSON:
     relationships: { allied: [], hostile: [], neutral: [] },
   };
 
-  if (!result.ok) return { info: fallback, source: "fallback", ai_used: false, model: null, error: result.message };
+  if (!result.ok) {
+    return { info: fallback, source: "fallback", ai_used: false, model: null, provider: "none", ai_flow: result.ai_flow, error: result.message };
+  }
 
   try {
     const parsed = JSON.parse(stripJsonFences(result.text));
-    return { info: parsed, source: "ai", ai_used: true, model: result.model, error: null };
+    return { info: parsed, source: "ai", ai_used: true, model: result.model, provider: result.provider, ai_flow: result.ai_flow, error: null };
   } catch {
-    return { info: fallback, source: "fallback", ai_used: false, model: null, error: "JSON parse failed" };
+    return { info: fallback, source: "fallback", ai_used: false, model: null, provider: result.provider, ai_flow: result.ai_flow, error: "JSON parse failed" };
   }
 }
 
@@ -210,13 +220,10 @@ async function generateScenario({ stats = {}, previousDecisions = [], scenarioCo
   const statEntries = Object.entries(stats).map(([k, v]) => `${k}: ${v}/100`).join(", ");
   const weakest = Object.entries(stats).sort(([, a], [, b]) => a - b)[0]?.[0] ?? "diplomacy";
 
-  const result = await openAIChat({
-    json: true,
-    temperature: 0.85,
-    messages: [
-      {
-        role: "system",
-        content: `You are a geopolitical crisis engine for the Global Governance Simulator. Generate a realistic multi-choice crisis scenario.
+  const builtMessages = [
+    {
+      role: "system",
+      content: `You are a geopolitical crisis engine for the Global Governance Simulator. Generate a realistic multi-choice crisis scenario.
 
 ${worldContext}
 Player country: ${country}
@@ -244,33 +251,31 @@ Respond ONLY with JSON:
 }
 
 Provide exactly 3 options. Make the scenario unique from previous decisions. Target the weakest stat for added challenge.`,
-      },
-      { role: "user", content: "Generate the next crisis scenario." },
-    ],
-  });
+    },
+    { role: "user", content: "Generate the next crisis scenario." },
+  ];
+
+  const result = await callAI(builtMessages, { json: true, temperature: 0.85 });
 
   if (!result.ok) {
-    return { scenario: buildFallbackScenario(scenarioCount), source: "fallback", ai_used: false, model: null, error: result.message };
+    return { scenario: buildFallbackScenario(scenarioCount), source: "fallback", ai_used: false, model: null, provider: "none", ai_flow: result.ai_flow, error: result.message };
   }
 
   try {
     const parsed = JSON.parse(stripJsonFences(result.text));
-    return { scenario: parsed, source: "ai", ai_used: true, model: result.model, error: null };
+    return { scenario: parsed, source: "ai", ai_used: true, model: result.model, provider: result.provider, ai_flow: result.ai_flow, error: null };
   } catch {
-    return { scenario: buildFallbackScenario(scenarioCount), source: "fallback", ai_used: false, model: null, error: "JSON parse failed" };
+    return { scenario: buildFallbackScenario(scenarioCount), source: "fallback", ai_used: false, model: null, provider: result.provider, ai_flow: result.ai_flow, error: "JSON parse failed" };
   }
 }
 
 async function finalizeDecision({ scenarioTitle, scenarioDescription, choiceLabel, suggestedOutcome, previewEffects, stats }) {
   const worldContext = getWorldStateSnapshot();
 
-  const result = await openAIChat({
-    json: true,
-    temperature: 0.75,
-    messages: [
-      {
-        role: "system",
-        content: `You are a geopolitical outcome engine. Generate the consequences of a presidential decision.
+  const builtMessages = [
+    {
+      role: "system",
+      content: `You are a geopolitical outcome engine. Generate the consequences of a presidential decision.
 
 ${worldContext}
 
@@ -281,13 +286,14 @@ Respond ONLY with JSON:
   "newsHeadline": "One realistic wire-service style headline about this decision",
   "appliedEffects": { "diplomacy": number(-20 to 20), "economy": number(-20 to 20), "security": number(-20 to 20), "approval": number(-20 to 20) }
 }`,
-      },
-      {
-        role: "user",
-        content: `Crisis: "${scenarioTitle}"\n\nSituation: ${scenarioDescription}\n\nDecision made: "${choiceLabel}"\nExpected outcome: ${suggestedOutcome}\nProjected effects: ${JSON.stringify(previewEffects)}\nCurrent stats: ${JSON.stringify(stats)}`,
-      },
-    ],
-  });
+    },
+    {
+      role: "user",
+      content: `Crisis: "${scenarioTitle}"\n\nSituation: ${scenarioDescription}\n\nDecision made: "${choiceLabel}"\nExpected outcome: ${suggestedOutcome}\nProjected effects: ${JSON.stringify(previewEffects)}\nCurrent stats: ${JSON.stringify(stats)}`,
+    },
+  ];
+
+  const result = await callAI(builtMessages, { json: true, temperature: 0.75 });
 
   if (!result.ok) {
     const effects = previewEffects ?? { diplomacy: 0, economy: 0, security: 0, approval: -5 };
@@ -296,7 +302,7 @@ Respond ONLY with JSON:
       narrativeOutcome: `Your administration's decision regarding ${scenarioTitle} has been implemented.`,
       followUp: "The international community is watching closely.",
       newsHeadline: `World Leaders React to ${scenarioTitle} Decision`,
-      source: "fallback", ai_used: false, model: null, error: result.message,
+      source: "fallback", ai_used: false, model: null, provider: "none", ai_flow: result.ai_flow, error: result.message,
     };
   }
 
@@ -308,14 +314,14 @@ Respond ONLY with JSON:
       security: parsed.appliedEffects?.security,
       headline: parsed.newsHeadline,
     });
-    return { ...parsed, worldState: state, worldStateChanges: changes, source: "ai", ai_used: true, model: result.model, error: null };
+    return { ...parsed, worldState: state, worldStateChanges: changes, source: "ai", ai_used: true, model: result.model, provider: result.provider, ai_flow: result.ai_flow, error: null };
   } catch {
     return {
       appliedEffects: previewEffects ?? {},
       narrativeOutcome: `Decision on ${scenarioTitle} has been executed.`,
       followUp: "Consequences are still unfolding.",
       newsHeadline: `${scenarioTitle}: Administration Acts`,
-      source: "fallback", ai_used: false, model: null, error: "JSON parse failed",
+      source: "fallback", ai_used: false, model: null, provider: result.provider, ai_flow: result.ai_flow, error: "JSON parse failed",
     };
   }
 }
@@ -323,12 +329,10 @@ Respond ONLY with JSON:
 async function getAdvisorSuggestion({ question, stats, currentScenario, decisionHistory }) {
   const worldContext = getWorldStateSnapshot();
 
-  const result = await openAIChat({
-    temperature: 0.7,
-    messages: [
-      {
-        role: "system",
-        content: `You are a senior presidential advisor in the Global Governance Simulator. Give concise, strategic advice.
+  const builtMessages = [
+    {
+      role: "system",
+      content: `You are a senior presidential advisor in the Global Governance Simulator. Give concise, strategic advice.
 
 ${worldContext}
 Player stats: ${JSON.stringify(stats)}
@@ -336,18 +340,21 @@ Current scenario: ${currentScenario || "None"}
 Decision history: ${decisionHistory?.slice(-3).join("; ") || "None"}
 
 Keep advice to 2-3 sentences. Be direct and strategic.`,
-      },
-      { role: "user", content: question },
-    ],
-  });
+    },
+    { role: "user", content: question },
+  ];
 
-  if (!result.ok) return { suggestion: "I'm unable to advise at this time. Trust your instincts.", ai_used: false, model: null, error: result.message };
-  return { suggestion: result.text, ai_used: true, model: result.model, error: null };
+  const result = await callAI(builtMessages, { temperature: 0.7 });
+
+  if (!result.ok) {
+    return { suggestion: "I'm unable to advise at this time. Trust your instincts.", ai_used: false, model: null, provider: "none", ai_flow: result.ai_flow, error: result.message };
+  }
+
+  return { suggestion: result.text, ai_used: true, model: result.model, provider: result.provider, ai_flow: result.ai_flow, error: null };
 }
 
 let _engineHits = 0;
 let _lastRequest = null;
-let _errors = [];
 const _engineStartTime = Date.now();
 
 export function recordEngineHit(type, payload) {
@@ -355,10 +362,7 @@ export function recordEngineHit(type, payload) {
   _lastRequest = { type, payload, timestamp: new Date().toISOString() };
 }
 
-export function recordEngineError(type, error) {
-  _errors.unshift({ type, error, timestamp: new Date().toISOString() });
-  if (_errors.length > 20) _errors.splice(20);
-}
+export function recordEngineError(type, error) {}
 
 export async function handleDebug() {
   const { getLogs } = await import("./debug.js");
@@ -370,9 +374,12 @@ export async function handleDebug() {
   const errors = logs.filter((l) => l.error).map((l) => ({ type: l.type, error: l.error, timestamp: l.timestamp }));
   const state = getWorldState();
 
+  const ai_status = await getProviderStatus();
+
   return {
     system_status: "healthy",
-    openai_connected: !!getOpenAIKey(),
+    ai_status,
+    openai_connected: ai_status.openai === "working" || ai_status.openrouter === "working",
     engine_hits: _engineHits,
     uptime_ms: Date.now() - _engineStartTime,
     latency_ms_avg: avgLatency,
@@ -380,6 +387,7 @@ export async function handleDebug() {
     ai_calls: aiLogs.length,
     world_state_size: Object.keys(state).length,
     last_request: _lastRequest,
+    last_errors: errors.slice(0, 10),
     errors: errors.slice(0, 10),
     ai_used: false,
     model: null,

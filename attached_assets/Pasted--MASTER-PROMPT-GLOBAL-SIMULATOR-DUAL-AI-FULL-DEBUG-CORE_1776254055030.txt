@@ -1,0 +1,169 @@
+🚀 MASTER PROMPT — GLOBAL SIMULATOR (DUAL AI + FULL DEBUG CORE)
+
+You are building a fully stable AI-powered geopolitical simulation engine.
+
+🧠 CORE OBJECTIVE
+
+Fix and build a system that:
+
+NEVER silently fails
+ALWAYS shows where the problem is
+Uses 2 AI providers with fallback logic
+Tracks every step of execution
+🔥 AI PRIORITY SYSTEM (CRITICAL)
+🥇 PRIMARY AI (FIRST TRY)
+
+Use:
+
+https://openrouter.ai/api/v1/chat/completions
+
+Model:
+
+nvidia/nemotron-3-nano-30b-a3b:free
+🥈 BACKUP AI (ONLY IF PRIMARY FAILS)
+
+Use OpenAI:
+
+gpt-4o-mini
+🧠 FALLBACK RULE
+Try OpenRouter FIRST
+If it fails → log error → switch to OpenAI
+If OpenAI fails → return structured failure
+🔌 ENGINE ARCHITECTURE
+ONLY API:
+POST /api/engine
+REQUEST:
+{
+  "type": "chat | decision | verify_news | debug",
+  "payload": {},
+  "sessionId": "user123"
+}
+⚙️ AI ENGINE FUNCTION (MANDATORY)
+
+Create ONE function:
+
+async function callAI(messages)
+🔥 INTERNAL LOGIC (VERY IMPORTANT)
+STEP 1 — TRY OPENROUTER
+send request using provided fetch format
+include reasoning: { enabled: true }
+STEP 2 — VALIDATE RESPONSE
+
+Check:
+
+response exists
+choices[0].message.content exists
+
+If NOT → mark as failure
+
+STEP 3 — IF FAIL → SWITCH TO OPENAI
+
+Use:
+
+openai.chat.completions.create()
+STEP 4 — IF BOTH FAIL
+
+Return:
+
+{
+  "success": false,
+  "error": "Both AI providers failed"
+}
+🧪 ULTRA DEBUG SYSTEM (THIS IS THE MAIN PART)
+
+Every AI call MUST produce:
+
+{
+  "ai_flow": {
+    "openrouter_attempted": true,
+    "openrouter_success": false,
+    "openrouter_error": "...",
+
+    "openai_attempted": true,
+    "openai_success": true,
+    "openai_error": null
+  }
+}
+🔍 FULL DEBUG RESPONSE FORMAT
+
+EVERY /api/engine response MUST include:
+
+{
+  "data": {},
+  "debug": {
+    "engine_hit": true,
+    "type": "chat",
+
+    "ai_provider_used": "openrouter | openai | none",
+
+    "openrouter_status": "success | failed | skipped",
+    "openai_status": "success | failed | skipped",
+
+    "errors": [],
+
+    "raw_errors": [],
+
+    "latency_ms": 320,
+
+    "request_payload": {},
+    "processed_messages": [],
+
+    "world_state_before": {},
+    "world_state_after": {}
+  }
+}
+🧠 CRITICAL DEBUG RULES
+MUST LOG:
+request received
+AI request sent
+raw API response
+parsing step
+fallback trigger
+final output
+MUST NEVER HAPPEN:
+
+❌ No silent fallback
+❌ No hidden errors
+❌ No undefined responses
+
+🎮 ENGINE MODES
+1. CHAT
+build messages array
+send to callAI()
+2. DECISION
+generate scenario
+send to AI
+update world state
+3. VERIFY NEWS
+send article to AI
+return credibility
+4. DEBUG MODE
+
+Return:
+
+{
+  "ai_status": {
+    "openrouter": "working | failing",
+    "openai": "working | failing"
+  },
+  "last_errors": [],
+  "engine_hits": 120
+}
+⚠️ FAILURE VISIBILITY SYSTEM
+
+If OpenRouter fails:
+
+{
+  "warning": "OpenRouter failed — fallback triggered"
+}
+
+If OpenAI fails:
+
+{
+  "error": "Backup AI also failed"
+}
+🧠 FINAL SYSTEM BEHAVIOR
+
+The system must behave like:
+
+A transparent AI engine where every step (primary AI → fallback → result) is visible, logged, and debuggable.

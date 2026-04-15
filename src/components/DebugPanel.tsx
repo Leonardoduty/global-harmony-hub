@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, RefreshCw, Trash2, Bug, ChevronDown, ChevronRight, Wifi, WifiOff, Clock, Cpu, AlertTriangle, CheckCircle } from "lucide-react";
+import { X, RefreshCw, Trash2, Bug, ChevronDown, ChevronRight, Wifi, WifiOff, Clock, Cpu, AlertTriangle, CheckCircle, Zap, ArrowRight } from "lucide-react";
 import { fetchDebugLogs, clearDebugLogs, type DebugLog } from "@/lib/apiEngine";
 
 const TYPE_COLORS: Record<string, string> = {
@@ -12,13 +12,47 @@ const TYPE_COLORS: Record<string, string> = {
   country_info: "text-pink-400",
 };
 
+type AiFlow = {
+  openrouter_attempted: boolean;
+  openrouter_success: boolean;
+  openrouter_error: string | null;
+  openrouter_skipped?: boolean;
+  openai_attempted: boolean;
+  openai_success: boolean;
+  openai_error: string | null;
+  openai_skipped?: boolean;
+};
+
+function ProviderFlowBar({ flow, provider }: { flow?: AiFlow | null; provider?: string | null }) {
+  if (!flow) return null;
+  const orColor = flow.openrouter_skipped ? "text-white/20" : flow.openrouter_success ? "text-green-400" : flow.openrouter_attempted ? "text-red-400" : "text-white/20";
+  const oaColor = flow.openai_skipped ? "text-white/20" : flow.openai_success ? "text-blue-400" : flow.openai_attempted ? "text-red-400" : "text-white/20";
+  const orLabel = flow.openrouter_skipped ? "SKIPPED" : flow.openrouter_success ? "OK" : flow.openrouter_attempted ? "FAIL" : "—";
+  const oaLabel = flow.openai_skipped ? "SKIPPED" : flow.openai_success ? "OK" : flow.openai_attempted ? "FAIL" : "—";
+
+  return (
+    <div className="flex items-center gap-1.5 mt-1.5 pl-5 text-[9px] font-mono">
+      <span className={orColor}>OpenRouter [{orLabel}]</span>
+      <ArrowRight className="w-2.5 h-2.5 text-white/20" />
+      <span className={oaColor}>OpenAI [{oaLabel}]</span>
+      {provider && provider !== "none" && (
+        <span className="ml-1 px-1 py-0.5 rounded text-[8px] font-bold bg-white/5 text-white/40">via {provider}</span>
+      )}
+    </div>
+  );
+}
+
 function LogEntry({ log }: { log: DebugLog }) {
   const [expanded, setExpanded] = useState(false);
   const typeColor = TYPE_COLORS[log.type] ?? "text-foreground";
   const hasError = !!log.error;
+  const response = log.response as Record<string, unknown> | null;
+  const aiFlow = response?.ai_flow as AiFlow | null | undefined;
+  const provider = response?.provider as string | null | undefined;
+  const hasFallback = provider === "openai" && (aiFlow?.openrouter_attempted);
 
   return (
-    <div className={`border rounded-md p-2 text-xs font-mono transition-colors ${hasError ? "border-red-500/40 bg-red-500/5" : "border-border bg-muted/30"}`}>
+    <div className={`border rounded-md p-2 text-xs font-mono transition-colors ${hasError ? "border-red-500/40 bg-red-500/5" : hasFallback ? "border-amber-500/30 bg-amber-500/5" : "border-border bg-muted/30"}`}>
       <button
         className="w-full flex items-center gap-2 text-left"
         onClick={() => setExpanded((v) => !v)}
@@ -27,10 +61,14 @@ function LogEntry({ log }: { log: DebugLog }) {
         <span className={`font-bold uppercase ${typeColor}`}>{log.type}</span>
         <span className="text-muted-foreground ml-auto">{log.latency_ms}ms</span>
         {log.ai_used ? (
-          <span className="flex items-center gap-1 text-green-400"><Wifi className="w-3 h-3" />{log.model}</span>
+          <span className={`flex items-center gap-1 ${provider === "openai" ? "text-blue-400" : "text-green-400"}`}>
+            <Wifi className="w-3 h-3" />
+            {provider === "openrouter" ? "OpenRouter" : provider === "openai" ? "OpenAI" : log.model}
+          </span>
         ) : (
-          <span className="flex items-center gap-1 text-amber-400"><WifiOff className="w-3 h-3" />fallback</span>
+          <span className="flex items-center gap-1 text-amber-400"><WifiOff className="w-3 h-3" />no-AI</span>
         )}
+        {hasFallback && <Zap className="w-3 h-3 text-amber-400 shrink-0" title="Fallback triggered" />}
         {hasError ? (
           <AlertTriangle className="w-3 h-3 text-red-400 shrink-0" />
         ) : (
@@ -43,6 +81,14 @@ function LogEntry({ log }: { log: DebugLog }) {
         {new Date(log.timestamp).toLocaleTimeString()}
         <span className="opacity-50">#{log.id.slice(0, 8)}</span>
       </div>
+
+      {log.ai_used && <ProviderFlowBar flow={aiFlow} provider={provider} />}
+
+      {hasFallback && (
+        <div className="mt-1 pl-5 text-amber-400 text-[10px]">
+          ⚡ OpenRouter failed — fallback to OpenAI triggered
+        </div>
+      )}
 
       {hasError && (
         <div className="mt-1 pl-5 text-red-400 text-[10px]">
@@ -59,6 +105,25 @@ function LogEntry({ log }: { log: DebugLog }) {
             className="overflow-hidden"
           >
             <div className="mt-2 pl-5 space-y-2">
+              {aiFlow && (
+                <div>
+                  <div className="text-[10px] text-muted-foreground uppercase mb-1">AI Provider Flow</div>
+                  <div className="bg-black/30 rounded p-2 space-y-1 text-[10px]">
+                    <div className="flex items-center gap-2">
+                      <span className={aiFlow.openrouter_success ? "text-green-400" : aiFlow.openrouter_attempted ? "text-red-400" : "text-white/30"}>
+                        {aiFlow.openrouter_success ? "✓" : aiFlow.openrouter_attempted ? "✗" : "○"} OpenRouter
+                      </span>
+                      {aiFlow.openrouter_error && <span className="text-red-400/70 truncate">{aiFlow.openrouter_error}</span>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={aiFlow.openai_success ? "text-blue-400" : aiFlow.openai_attempted ? "text-red-400" : "text-white/30"}>
+                        {aiFlow.openai_success ? "✓" : aiFlow.openai_attempted ? "✗" : "○"} OpenAI (fallback)
+                      </span>
+                      {aiFlow.openai_error && <span className="text-red-400/70 truncate">{aiFlow.openai_error}</span>}
+                    </div>
+                  </div>
+                </div>
+              )}
               <div>
                 <div className="text-[10px] text-muted-foreground uppercase mb-1">Request Payload</div>
                 <pre className="text-[10px] bg-black/30 p-2 rounded overflow-auto max-h-32 text-foreground/80">
@@ -207,10 +272,16 @@ export default function DebugPanel() {
               </div>
             </div>
 
-            <div className="p-3 border-b border-border shrink-0">
+            <div className="p-3 border-b border-border shrink-0 space-y-1">
               <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground">
                 <Cpu className="w-3 h-3" />
                 POST /api/engine — Ctrl+Shift+D to toggle
+              </div>
+              <div className="flex items-center gap-1.5 text-[9px] font-mono text-muted-foreground/60">
+                <Zap className="w-2.5 h-2.5 text-green-400/60" />
+                <span className="text-green-400/60">OpenRouter</span>
+                <ArrowRight className="w-2.5 h-2.5 opacity-30" />
+                <span className="text-blue-400/60">OpenAI fallback</span>
               </div>
             </div>
 
