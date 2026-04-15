@@ -3,8 +3,7 @@ import { geoNaturalEarth1, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
 import type { Topology, Objects } from "topojson-client";
 import { X, Loader as Loader2, TriangleAlert as AlertTriangle, Heart, Clock, User, Users, Wifi, WifiOff } from "lucide-react";
-import { useServerFn } from "@tanstack/react-start";
-import { getCountryInfo } from "@/functions/country.functions";
+import { engineGetCountryInfo } from "@/lib/apiEngine";
 import { getMockCountryInfo, type CountryInfo as MockCountryInfo } from "@/lib/mockCountryData";
 
 const GEO_URLS = [
@@ -157,7 +156,6 @@ export default function WorldMap({ playerDiplomacy = 50 }: Props) {
   const [simContextActive, setSimContextActive] = useState(false);
 
   const { features, loaded, geoError } = useWorldGeo();
-  const getInfoFn = useServerFn(getCountryInfo);
 
   useEffect(() => {
     const bump = () => {
@@ -209,23 +207,12 @@ export default function WorldMap({ playerDiplomacy = 50 }: Props) {
       const gameContext = readPresidentialGameContext();
 
       try {
-        const result = await getInfoFn({
-          data: {
-            countryName,
-            ...(gameContext ? { gameContext } : {}),
-          },
-        });
-        const info = result?.info as CountryInfo | undefined;
-        const warn = (result as { loadWarning?: string | null })?.loadWarning;
-        if (info) {
-          setCountryInfo(info);
-          setDataSource((result.source as "ai" | "mock") ?? "mock");
-          if (warn) {
-            setLoadWarning(warn);
-            console.warn("[WorldMap] Country briefing warning:", warn);
-          }
+        const res = await engineGetCountryInfo(countryName, gameContext ?? undefined);
+        if (res.ok && res.data?.info) {
+          setCountryInfo(res.data.info as CountryInfo);
+          setDataSource(res.data.source === "ai" ? "ai" : "mock");
         } else {
-          console.error("[WorldMap] Empty country response from server; using embedded mock.");
+          console.error("[WorldMap] Empty country response from engine; using embedded mock.");
           setCountryInfo(getMockCountryInfo(countryName));
           setDataSource("mock");
           setLoadWarning("Server returned no data — showing offline briefing.");
@@ -241,7 +228,7 @@ export default function WorldMap({ playerDiplomacy = 50 }: Props) {
         setLoading(false);
       }
     },
-    [loading, getInfoFn]
+    [loading]
   );
 
   const closePanel = () => {

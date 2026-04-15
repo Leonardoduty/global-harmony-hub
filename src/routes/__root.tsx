@@ -4,6 +4,7 @@ import { Outlet, Link, createRootRoute, Scripts } from "@tanstack/react-router";
 import appCss from "../styles.css?url";
 import Header from "@/components/Header";
 import HarmonyChatbot from "@/components/HarmonyChatbot";
+import DebugPanel from "@/components/DebugPanel";
 
 function ClientOnly({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
@@ -83,6 +84,7 @@ function RootComponent() {
       <Outlet />
       <ClientOnly>
         <HarmonyChatbot />
+        <DebugPanel />
       </ClientOnly>
     </>
   );

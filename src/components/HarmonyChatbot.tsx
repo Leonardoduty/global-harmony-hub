@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { X, Send, MessageCircle, Loader2, ChevronDown } from "lucide-react";
-import { useServerFn } from "@tanstack/react-start";
-import { chatWithHarmony } from "@/functions/chatbot.functions";
+import { engineChat } from "@/lib/apiEngine";
 import ReactMarkdown from "react-markdown";
 
 type Message = { role: "user" | "assistant"; content: string };
@@ -38,7 +37,6 @@ export default function HarmonyChatbot() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const chatFn = useServerFn(chatWithHarmony);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -61,13 +59,12 @@ export default function HarmonyChatbot() {
     setLoading(true);
 
     try {
-      const result = await chatFn({
-        data: {
-          messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
-          advisor,
-        },
-      });
-      setMessages((p) => [...p, { role: "assistant", content: result.reply }]);
+      const res = await engineChat(
+        newMessages.map((m) => ({ role: m.role, content: m.content })),
+        advisor
+      );
+      const reply = res.ok ? (res.data?.reply ?? "No response received.") : "Sorry, I couldn't process that. Please try again.";
+      setMessages((p) => [...p, { role: "assistant", content: reply }]);
     } catch {
       setMessages((p) => [...p, { role: "assistant", content: "Sorry, I couldn't process that. Please try again." }]);
     } finally {

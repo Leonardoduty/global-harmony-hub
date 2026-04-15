@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { motion } from "framer-motion";
 import { Globe, Shield, TrendingUp, AlertTriangle, RefreshCw, Zap } from "lucide-react";
-import { fetchWorldState } from "@/functions/world-state.functions";
+import { engineGetWorldState } from "@/lib/apiEngine";
 
 type WorldState = {
   active_conflicts: string[];
@@ -42,14 +41,15 @@ export default function WorldStateDashboard() {
   const [state, setState] = useState<WorldState | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  const fetchFn = useServerFn(fetchWorldState);
 
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetchFn();
-      setState(res.state);
-      setLastRefresh(new Date());
+      const res = await engineGetWorldState();
+      if (res.ok && res.data?.state) {
+        setState(res.data.state);
+        setLastRefresh(new Date());
+      }
     } catch (e) {
       console.warn("[WorldState]", e);
     } finally {

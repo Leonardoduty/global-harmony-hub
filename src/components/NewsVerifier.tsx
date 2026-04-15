@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { motion, AnimatePresence } from "framer-motion";
-import { verifyNews } from "@/functions/news-verify.functions";
+import { engineVerifyNews } from "@/lib/apiEngine";
 import { CheckCircle, XCircle, AlertTriangle, Search, Loader2, Shield, Newspaper } from "lucide-react";
 
 type VerifyResult = {
@@ -33,7 +32,6 @@ export default function NewsVerifier() {
   const [result, setResult] = useState<VerifyResult | null>(null);
   const [checking, setChecking] = useState(false);
   const [showContent, setShowContent] = useState(false);
-  const verifyFn = useServerFn(verifyNews);
 
   const check = async (h?: string) => {
     const target = (h ?? headline).trim();
@@ -43,8 +41,15 @@ export default function NewsVerifier() {
     setResult(null);
 
     try {
-      const res = await verifyFn({ data: { headline: target, content: content.trim() || undefined } });
-      setResult(res.result);
+      const res = await engineVerifyNews(target, content.trim() || undefined);
+      setResult(res.ok && res.data?.result ? res.data.result : {
+        verified: false,
+        credibility_score: 0,
+        classification: "Unverified",
+        reason: "Verification service unavailable. Please try again.",
+        key_claims: [],
+        confidence: 0,
+      });
     } catch {
       setResult({
         verified: false,

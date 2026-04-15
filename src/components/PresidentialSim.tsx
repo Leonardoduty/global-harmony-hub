@@ -1,13 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Shield, Zap, Heart, DollarSign, Loader as Loader2, RotateCcw, Sparkles } from "lucide-react";
-import { useServerFn } from "@tanstack/react-start";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSimulation } from "@/context/SimulationContext";
-import {
-  generateScenario,
-  finalizeDecision,
-  generateScenarioIllustrations,
-} from "@/functions/presidential.functions";
+import { engineGenerateScenario, engineFinalizeDecision } from "@/lib/apiEngine";
 import AdvisorPanel from "@/components/sim/AdvisorPanel";
 import NewsPanel from "@/components/sim/NewsPanel";
 import DecisionPreview from "@/components/sim/DecisionPreview";
@@ -92,9 +87,6 @@ export default function PresidentialSim() {
   const [confirmOption, setConfirmOption] = useState<Scenario["options"][0] | null>(null);
   const [outcomeImageUrl, setOutcomeImageUrl] = useState<string | null>(null);
 
-  const genScenarioFn = useServerFn(generateScenario);
-  const finalizeFn = useServerFn(finalizeDecision);
-  const genIllustrationsFn = useServerFn(generateScenarioIllustrations);
 
   const latestEventImage = useMemo(() => {
     for (let i = timeline.length - 1; i >= 0; i--) {
@@ -121,29 +113,11 @@ export default function PresidentialSim() {
     }
     illustCancelRef.current = false;
     setIllustrations([]);
-    setIllustLoading(true);
-    genIllustrationsFn({
-      data: {
-        title: scenario.title,
-        description: scenario.description,
-        imagePrompt: scenario.imagePrompt,
-      },
-    })
-      .then((res) => {
-        if (!illustCancelRef.current && res.imageDataUrls?.length) {
-          setIllustrations(res.imageDataUrls);
-        }
-      })
-      .catch(() => {
-        if (!illustCancelRef.current) setIllustrations([]);
-      })
-      .finally(() => {
-        if (!illustCancelRef.current) setIllustLoading(false);
-      });
+    setIllustLoading(false);
     return () => {
       illustCancelRef.current = true;
     };
-  }, [scenario, genIllustrationsFn]);
+  }, [scenario]);
 
   const loadScenario = async () => {
     setLoading(true);
@@ -156,18 +130,16 @@ export default function PresidentialSim() {
     setOutcomeImageUrl(null);
 
     try {
-      const result = await genScenarioFn({
-        data: {
-          stats,
-          previousDecisions: decisions,
-          scenarioCount,
-          worldEvents: worldEvents.slice(-5),
-          country: selectedCountry?.name,
-        },
+      const res = await engineGenerateScenario({
+        stats,
+        previousDecisions: decisions,
+        scenarioCount,
+        worldEvents: worldEvents.slice(-5),
+        country: selectedCountry?.name,
       });
-      if (result.scenario) {
-        setScenario(result.scenario);
-        setDataSource(result.source === "ai" ? "ai" : "fallback");
+      if (res.ok && res.data?.scenario) {
+        setScenario(res.data.scenario as Scenario);
+        setDataSource(res.data.source === "ai" ? "ai" : "fallback");
       }
     } catch {
       setScenario(null);
@@ -197,22 +169,21 @@ export default function PresidentialSim() {
     let applied = { ...option.effects };
 
     try {
-      const finalized = await finalizeFn({
-        data: {
-          scenarioTitle: scenario.title,
-          scenarioDescription: scenario.description,
-          choiceLabel: option.label,
-          suggestedOutcome: option.outcome,
-          previewEffects: preview,
-          fallbackEffects: option.effects,
-          stats: prevStats,
-          decisionHistory: newDecisions.slice(-8),
-        },
+      const res = await engineFinalizeDecision({
+        scenarioTitle: scenario.title,
+        scenarioDescription: scenario.description,
+        choiceLabel: option.label,
+        suggestedOutcome: option.outcome,
+        previewEffects: preview,
+        stats: prevStats,
+        decisionHistory: newDecisions.slice(-8),
       });
-      applied = finalized.appliedEffects;
-      narrative = finalized.narrativeOutcome || option.outcome;
-      followUpText = finalized.followUp ?? null;
-      headlineText = finalized.newsHeadline ?? null;
+      if (res.ok && res.data) {
+        applied = res.data.appliedEffects ?? applied;
+        narrative = res.data.narrativeOutcome || option.outcome;
+        followUpText = res.data.followUp ?? null;
+        headlineText = res.data.newsHeadline ?? null;
+      }
     } catch (e) {
       console.error("[PresidentialSim] finalizeDecision failed:", e);
     }
@@ -256,23 +227,6 @@ export default function PresidentialSim() {
 
     setNewsFeedTrigger((n) => n + 1);
     setResolvingChoice(false);
-
-    genIllustrationsFn({
-      data: {
-        title: scenario.title,
-        description: `${option.label}\n\n${narrative}`,
-        imagePrompt: scenario.imagePrompt,
-      },
-    })
-      .then((res) => {
-        const url = res.imageDataUrls?.[0];
-        if (!url) return;
-        setOutcomeImageUrl(url);
-        setTimeline((prev) =>
-          prev.map((e) => (e.id === entryId ? { ...e, imageDataUrl: url } : e))
-        );
-      })
-      .catch((err) => console.warn("[PresidentialSim] outcome illustration:", err));
   };
 
   const next = () => {

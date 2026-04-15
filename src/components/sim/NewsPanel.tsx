@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Newspaper, RefreshCw, Wifi, WifiOff, ChevronDown, ChevronUp } from "lucide-react";
-import { useServerFn } from "@tanstack/react-start";
-import { generateNewsHeadlines } from "@/functions/presidential.functions";
+import { engineGenerateHeadlines } from "@/lib/apiEngine";
 
 type Headline = {
   headline: string;
@@ -33,16 +32,15 @@ export default function NewsPanel({ stats, recentDecisions, worldEvents, refresh
   const [headlines, setHeadlines] = useState<Headline[]>([]);
   const [loading, setLoading] = useState(false);
   const [dataSource, setDataSource] = useState<"ai" | "mock" | null>(null);
-  const genHeadlinesFn = useServerFn(generateNewsHeadlines);
 
   const fetchHeadlines = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await genHeadlinesFn({
-        data: { stats, recentDecisions, worldEvents },
-      });
-      setHeadlines(result.headlines);
-      setDataSource(result.source);
+      const res = await engineGenerateHeadlines(recentDecisions);
+      if (res.ok && res.data?.headlines) {
+        setHeadlines(res.data.headlines);
+        setDataSource(res.data.source === "ai" ? "ai" : "mock");
+      } else throw new Error("No data");
     } catch {
       setHeadlines([
         { headline: "Global Stability Index Under Scrutiny As Tensions Rise", source: "Reuters", category: "global", time: "1h ago" },
@@ -53,7 +51,7 @@ export default function NewsPanel({ stats, recentDecisions, worldEvents, refresh
     } finally {
       setLoading(false);
     }
-  }, [stats, recentDecisions, worldEvents, genHeadlinesFn]);
+  }, [stats, recentDecisions, worldEvents]);
 
   useEffect(() => {
     if (open && headlines.length === 0) {

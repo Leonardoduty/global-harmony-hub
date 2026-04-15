@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Brain, Loader as Loader2, ChevronDown, ChevronUp } from "lucide-react";
-import { useServerFn } from "@tanstack/react-start";
-import { getAdvisorSuggestion } from "@/functions/presidential.functions";
+import { engineGetAdvisorSuggestion } from "@/lib/apiEngine";
 
 type Message = { role: "user" | "advisor"; text: string };
 
@@ -26,7 +25,6 @@ export default function AdvisorPanel({ stats, currentScenario, decisionHistory }
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const advisorFn = useServerFn(getAdvisorSuggestion);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -42,10 +40,11 @@ export default function AdvisorPanel({ stats, currentScenario, decisionHistory }
     setLoading(true);
 
     try {
-      const result = await advisorFn({
-        data: { question, stats, currentScenario, decisionHistory },
-      });
-      setMessages((p) => [...p, { role: "advisor", text: result.advice }]);
+      const res = await engineGetAdvisorSuggestion({ question, stats, currentScenario, decisionHistory });
+      const text = res.ok && res.data?.suggestion
+        ? res.data.suggestion
+        : "I'm experiencing technical difficulties. Please try again shortly.";
+      setMessages((p) => [...p, { role: "advisor", text }]);
     } catch {
       setMessages((p) => [...p, { role: "advisor", text: "I'm experiencing technical difficulties. Please try again shortly." }]);
     } finally {
