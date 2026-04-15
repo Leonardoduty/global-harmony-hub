@@ -1,19 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
 import NewsShield from "@/components/NewsShield";
 import NewsVerifier from "@/components/NewsVerifier";
 import WorldStateDashboard from "@/components/WorldStateDashboard";
 
-export const Route = createFileRoute("/news-shield")({
-  head: () => ({
-    meta: [
-      { title: "News Shield — Global Pulse" },
-      { name: "description", content: "AI-powered news verification and global intelligence." },
-    ],
-  }),
-  component: NewsShieldPage,
-});
-
-function NewsShieldPage() {
+export default function NewsShieldPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <h1 className="gp-section-title mb-2">Global News Shield</h1>

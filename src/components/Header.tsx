@@ -1,7 +1,7 @@
-import { Link, useLocation } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Radio } from "lucide-react";
 import logo from "@/assets/logo.png";
+import { usePath, navigate } from "@/lib/router";
 
 const navLinks = [
   { to: "/", label: "Home" },
@@ -12,7 +12,8 @@ const navLinks = [
 ] as const;
 
 export default function Header() {
-  const location = useLocation();
+  const path = usePath();
+
   return (
     <header
       className="sticky top-0 z-40 backdrop-blur-xl"
@@ -22,7 +23,11 @@ export default function Header() {
       }}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2.5">
-        <Link to="/" className="flex items-center gap-3 group">
+        <a
+          href="/"
+          onClick={(e) => { e.preventDefault(); navigate("/"); }}
+          className="flex items-center gap-3 group"
+        >
           <motion.img
             src={logo}
             alt="Global Pulse"
@@ -42,13 +47,17 @@ export default function Header() {
               Harmony Monitor
             </span>
           </div>
-        </Link>
+        </a>
 
         <nav className="hidden md:flex items-center gap-1">
           {navLinks.map((l) => {
-            const active = location.pathname === l.to;
+            const active = path === l.to;
             return (
-              <Link key={l.to} to={l.to}>
+              <a
+                key={l.to}
+                href={l.to}
+                onClick={(e) => { e.preventDefault(); navigate(l.to); }}
+              >
                 <motion.span
                   className="relative block px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest rounded-md transition-colors"
                   style={{
@@ -66,7 +75,7 @@ export default function Header() {
                   )}
                   {l.label}
                 </motion.span>
-              </Link>
+              </a>
             );
           })}
         </nav>

@@ -4,9 +4,13 @@ A full-stack AI geopolitical simulation platform — "Global Pulse: Harmony Moni
 
 ## Architecture
 
-### Frontend (React 19 + TanStack Start)
-- **Port**: 5000 (Vite dev server with SSR)
-- **Framework**: TanStack Router (file-based routing in `src/routes/`)
+### Frontend (React 19 + Vite SPA)
+- **Port**: 5000 (Vite dev server, plain SPA — no SSR)
+- **Routing**: Simple path-based SPA router via `src/lib/router.ts` (`usePath` + `navigate`)
+- **Pages**: `src/routes/` — each file exports a default page component
+- **Shell**: `src/App.tsx` — renders the active page inside the Layout
+- **Layout**: `src/routes/__root.tsx` — Header + page slot + Chatbot + DebugPanel
+- **Entry**: `src/main.tsx` → mounts `<App />` into `#root` in `index.html`
 - **Styling**: Tailwind CSS 4 + Framer Motion + Lucide React
 - **UI**: Radix UI primitives (Shadcn/UI pattern)
 

@@ -1,18 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { SimulationProvider, useSimulation } from "@/context/SimulationContext";
 import CountrySelectionScreen from "@/components/CountrySelectionScreen";
 import PresidentialSim from "@/components/PresidentialSim";
-
-export const Route = createFileRoute("/presidential-sim")({
-  head: () => ({
-    meta: [
-      { title: "Presidential Simulation — Global Pulse" },
-      { name: "description", content: "Experience presidential decision-making in global crisis scenarios." },
-    ],
-  }),
-  component: PresidentialSimPage,
-});
 
 function SimFlow() {
   const { selectedCountry, setSelectedCountry } = useSimulation();
@@ -63,7 +52,7 @@ function SimFlow() {
   );
 }
 
-function PresidentialSimPage() {
+export default function PresidentialSimPage() {
   return (
     <SimulationProvider>
       <SimFlow />

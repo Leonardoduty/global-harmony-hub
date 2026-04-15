@@ -1,0 +1,108 @@
+I am migrating a broken project to a clean Vite + React setup.
+
+⚠️ CRITICAL RULE:
+ALL EXISTING FUNCTIONS AND UI LOGIC MUST BE PRESERVED.
+DO NOT rewrite, simplify, or remove internal logic of components.
+ONLY fix structure, imports, and rendering issues.
+
+---
+
+Current situation:
+- Previously used @tanstack/react-start and file-based routing
+- Removed those dependencies
+- Now project is broken (routing, API imports, alias issues)
+- Vite is running but React app is not rendering properly
+- Only static index.html shows ("System Boot Successful")
+
+---
+
+Goal:
+Rebuild the frontend cleanly using:
+- Vite + React (NO TanStack router)
+- Keep ALL existing UI, animations, hooks, and functions EXACTLY as they are
+- Only adapt structure so it runs
+
+---
+
+Project structure:
+- src/routes/index.tsx contains the MAIN UI (THIS MUST BE PRESERVED)
+- Uses:
+  - framer-motion
+  - lucide-react
+  - TailwindCSS
+- Backend:
+  - server/index.js (port 3001)
+
+---
+
+Problems to fix:
+1. Remove TanStack routing completely:
+   - Remove createFileRoute
+   - Remove Link from @tanstack/react-router
+   - DO NOT break navigation UI (replace with basic <a> or no-op)
+
+2. Convert:
+   src/routes/index.tsx → src/App.jsx
+   WITHOUT changing internal logic
+
+3. Fix imports:
+   - "@/lib/apiEngine" → working relative import OR create the file
+   - Ensure all imports resolve
+
+4. Ensure Vite works:
+   - Fix vite.config if needed
+   - Remove broken dependencies
+
+5. Ensure React renders:
+   - main.jsx → mounts App.jsx properly
+
+6. Fix blank screen issue:
+   - Ensure App component renders
+
+---
+
+API requirement:
+- If apiEngine.ts is missing → CREATE it
+- Function:
+  engineGetWorldState()
+- Should:
+  - fetch from http://localhost:3001/api/engine
+  - include fallback data if API fails
+- DO NOT remove this function from UI
+
+---
+
+STRICT RULES:
+- DO NOT remove any components
+- DO NOT rewrite animations (framer-motion must stay)
+- DO NOT simplify UI
+- DO NOT delete hooks like useLiveWorldState
+- DO NOT change styling or Tailwind classes
+- ONLY fix wiring and structure
+
+---
+
+Output required:
+Provide FULL working code for:
+
+1. src/main.jsx
+2. src/App.jsx (converted from index.tsx)
+3. src/lib/apiEngine.js (if missing)
+4. vite.config.js (ONLY if needed)
+
+---
+
+Explain ONLY:
+- What was broken
+- What you changed structurally
+
+DO NOT explain basic React concepts.
+
+---
+
+Goal result:
+- App runs on Vite
+- UI fully visible (not blank)
+- No import errors
+- No routing crashes
+- All animations and features working

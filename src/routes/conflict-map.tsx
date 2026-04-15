@@ -1,17 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
 import WorldMapDashboard from "@/components/WorldMapDashboard";
 
-export const Route = createFileRoute("/conflict-map")({
-  head: () => ({
-    meta: [
-      { title: "World Map — Global Pulse" },
-      { name: "description", content: "Interactive world map with Doomsday Clock, country intelligence briefings, and global risk monitoring." },
-    ],
-  }),
-  component: ConflictMapPage,
-});
-
-function ConflictMapPage() {
+export default function ConflictMapPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <div className="mb-4">

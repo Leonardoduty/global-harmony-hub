@@ -1,18 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Map, Shield, Zap, Users, AlertTriangle, ArrowRight, Clock, Radio, Globe, Activity } from "lucide-react";
 import { engineGetWorldState } from "@/lib/apiEngine";
-
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Global Pulse — Harmony Monitor" },
-      { name: "description", content: "AI-powered geopolitical simulation. Monitor conflicts, verify news, simulate decisions." },
-    ],
-  }),
-  component: Index,
-});
+import { navigate } from "@/lib/router";
 
 type WorldState = {
   global_peace_index: number;
@@ -197,9 +187,13 @@ function GlowCard({ children, className = "", style = {}, delay = 0, to }: {
       className={className}
       style={style}
     >
-      <Link to={to} className="block w-full h-full">
+      <a
+        href={to}
+        onClick={(e) => { e.preventDefault(); navigate(to); }}
+        className="block w-full h-full"
+      >
         {children}
-      </Link>
+      </a>
     </motion.div>
   );
 }
@@ -236,7 +230,7 @@ function ConflictTicker({ conflicts }: { conflicts: string[] }) {
   );
 }
 
-function Index() {
+export default function Index() {
   const ws = useLiveWorldState();
   const peaceIndex = ws?.global_peace_index ?? 72;
   const warRisk = ws?.war_risk_level ?? 40;

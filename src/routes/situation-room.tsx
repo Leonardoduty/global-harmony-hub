@@ -1,19 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Activity, AlertTriangle, Globe, Radio } from "lucide-react";
 import CommunityStories from "@/components/CommunityStories";
 import { engineGetWorldState } from "@/lib/apiEngine";
-
-export const Route = createFileRoute("/situation-room")({
-  head: () => ({
-    meta: [
-      { title: "Situation Room — Global Pulse" },
-      { name: "description", content: "Emergency briefings and community success stories." },
-    ],
-  }),
-  component: SituationRoomPage,
-});
 
 type WorldState = {
   global_peace_index: number;
@@ -66,7 +55,7 @@ function MetricBar({ label, value, color, icon }: { label: string; value: number
   );
 }
 
-function SituationRoomPage() {
+export default function SituationRoomPage() {
   const { state, loading } = useLiveWorldState();
 
   const peaceIndex = state?.global_peace_index ?? 0;
