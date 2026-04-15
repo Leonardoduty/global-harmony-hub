@@ -1,3 +1,5 @@
+console.log("RAW ENV TEST:", process.env.OPENAI_API_KEY);
+console.log("🚀 SERVER FILE STARTED");
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -145,6 +147,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.listen(PORT, "0.0.0.0", () => {
+  console.log("🔥 ABOUT TO START SERVER");
   const aiKey = process.env.OPENAI_API_KEY?.trim();
   const orKey = process.env.OPENROUTER_API_KEY?.trim();
 
@@ -157,5 +160,8 @@ app.listen(PORT, "0.0.0.0", () => {
   if (!hasOpenRouter && !hasOpenAI) {
     console.warn(`[API ENGINE] ⚠  No AI keys found — set OPENAI_API_KEY or OPENROUTER_API_KEY to enable live AI.`);
   }
+  
   console.log(`[API ENGINE] Endpoints: POST /api/engine, GET /api/debug/logs, GET /api/health\n`);
+  console.log("✅ SERVER LISTEN CALLED");
 });
+console.log("🏁 SERVER FILE END REACHED");
