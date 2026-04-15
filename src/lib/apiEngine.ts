@@ -4,7 +4,8 @@ export type EngineType =
   | "verify_news"
   | "generate_headlines"
   | "world_state"
-  | "country_info";
+  | "country_info"
+  | "debug";
 
 export type EngineDebugMeta = {
   id: string;
@@ -191,6 +192,22 @@ export const engineGetAdvisorSuggestion = (payload: {
   currentScenario?: string;
   decisionHistory: string[];
 }) => callEngine<DecisionData>("decision", { action: "get_advisor_suggestion", ...payload });
+
+export type EngineDebugData = {
+  system_status: string;
+  openai_connected: boolean;
+  engine_hits: number;
+  uptime_ms: number;
+  latency_ms_avg: number;
+  total_requests: number;
+  ai_calls: number;
+  world_state_size: number;
+  last_request: unknown;
+  errors: { type: string; error: string; timestamp: string }[];
+};
+
+export const engineGetDebug = () =>
+  callEngine<EngineDebugData>("debug", {});
 
 export async function fetchDebugLogs(): Promise<DebugLog[]> {
   try {

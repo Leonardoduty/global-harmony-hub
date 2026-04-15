@@ -345,6 +345,48 @@ Keep advice to 2-3 sentences. Be direct and strategic.`,
   return { suggestion: result.text, ai_used: true, model: result.model, error: null };
 }
 
+let _engineHits = 0;
+let _lastRequest = null;
+let _errors = [];
+const _engineStartTime = Date.now();
+
+export function recordEngineHit(type, payload) {
+  _engineHits++;
+  _lastRequest = { type, payload, timestamp: new Date().toISOString() };
+}
+
+export function recordEngineError(type, error) {
+  _errors.unshift({ type, error, timestamp: new Date().toISOString() });
+  if (_errors.length > 20) _errors.splice(20);
+}
+
+export async function handleDebug() {
+  const { getLogs } = await import("./debug.js");
+  const logs = getLogs();
+  const aiLogs = logs.filter((l) => l.ai_used);
+  const avgLatency = logs.length > 0
+    ? Math.round(logs.reduce((sum, l) => sum + (l.latency_ms ?? 0), 0) / logs.length)
+    : 0;
+  const errors = logs.filter((l) => l.error).map((l) => ({ type: l.type, error: l.error, timestamp: l.timestamp }));
+  const state = getWorldState();
+
+  return {
+    system_status: "healthy",
+    openai_connected: !!getOpenAIKey(),
+    engine_hits: _engineHits,
+    uptime_ms: Date.now() - _engineStartTime,
+    latency_ms_avg: avgLatency,
+    total_requests: logs.length,
+    ai_calls: aiLogs.length,
+    world_state_size: Object.keys(state).length,
+    last_request: _lastRequest,
+    errors: errors.slice(0, 10),
+    ai_used: false,
+    model: null,
+    error: null,
+  };
+}
+
 function buildFallbackScenario(count) {
   const scenarios = [
     {

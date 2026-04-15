@@ -1,0 +1,175 @@
+🚀 MASTER PROMPT — GLOBAL GOVERNANCE AI SIMULATOR (ENGINE STABLE VERSION)
+
+You are building a fully functional full-stack AI geopolitical simulation backend + frontend logic system called:
+
+🌍 GLOBAL GOVERNANCE AI SIMULATOR
+
+This system is a living world simulation engine where every action updates a global state and is processed through a single unified AI engine.
+
+🧠 CORE GOAL
+
+Build a system that is:
+
+Fully working (NO broken routes)
+OpenAI-powered (from environment secrets)
+Debug-visible (full trace logging)
+Engine-driven (single API only)
+Stable under all conditions (no silent failures)
+⚙️ TECH STACK
+
+Frontend:
+
+React (Vite)
+Tailwind (optional, no UI requirements)
+
+Backend:
+
+Node.js + Express
+
+AI:
+
+OpenAI API ONLY (from process.env.OPENAI_API_KEY)
+🔌 CRITICAL ARCHITECTURE RULE
+ALL SYSTEMS MUST USE ONLY:
+POST /api/engine
+
+No other AI or simulation endpoints are allowed.
+
+📥 REQUEST FORMAT
+{
+  "type": "chat | decision | verify_news | debug",
+  "payload": {},
+  "sessionId": "user123"
+}
+🤖 1. CHAT MODE (OPENAI REQUIRED)
+type: "chat"
+Must call OpenAI API
+Must include world state context
+Must support advisor logic:
+Diplomatic Advisor
+Military Advisor
+Economic Advisor
+RESPONSE:
+{
+  "reply": "AI response",
+  "advisor": "Diplomatic Advisor",
+  "confidence": 0.9
+}
+🎮 2. DECISION MODE (PRESIDENT SIM)
+type: "decision"
+Generate geopolitical scenario
+Evaluate user choice
+Modify world state permanently
+Return impact + result
+RESPONSE:
+{
+  "scenario": "Border tension rising between X and Y",
+  "impact": {
+    "diplomacy": 5,
+    "economy": -2,
+    "stability": -3
+  },
+  "result": "Crisis resolved through negotiation"
+}
+🛡️ 3. NEWS VERIFICATION MODE
+type: "verify_news"
+Use OpenAI reasoning
+Compare against world state
+Return credibility score
+RESPONSE:
+{
+  "verified": false,
+  "credibility_score": 34,
+  "reason": "No matching geopolitical event found",
+  "classification": "Fake / Unverified / Misleading"
+}
+🧠 4. DEBUG MODE (MANDATORY SYSTEM TOOL)
+type: "debug"
+
+Must return full system diagnostics:
+
+{
+  "system_status": "healthy",
+  "openai_connected": true,
+  "engine_hits": 0,
+  "latency_ms_avg": 120,
+  "world_state_size": 12,
+  "last_request": {},
+  "errors": []
+}
+🔍 UNIVERSAL DEBUG BLOCK (EVERY RESPONSE)
+
+Every API response MUST include:
+
+"debug": {
+  "engine_hit": true,
+  "type": "chat",
+  "openai_used": true,
+  "fallback_used": false,
+  "latency_ms": 300
+}
+🌍 WORLD STATE SYSTEM
+
+Must exist as a persistent object:
+
+worldState = {
+  active_conflicts: [],
+  resolved_conflicts: [],
+  alliances: [],
+  global_peace_index: 70,
+  economic_stability: 65,
+  war_risk_level: 40
+}
+⚠️ ENGINE RULES (VERY IMPORTANT)
+1. FRONTEND MUST ONLY CALL:
+/api/engine
+2. NO OTHER API ROUTES ARE ALLOWED FOR AI OR SIMULATION
+3. BACKEND MUST LOG EVERY REQUEST:
+type
+payload
+sessionId
+🧪 DEBUGGING REQUIREMENTS
+
+System must expose:
+
+engine hit count
+last request received
+last response generated
+OpenAI status
+error logs
+latency metrics
+
+If engine is NOT being called:
+
+Return warning:
+
+ENGINE NOT CONNECTED
+⚠️ FAILSAFE RULE
+
+If OpenAI fails:
+
+{
+  "success": false,
+  "error": "OpenAI failure",
+  "fallback_used": true,
+  "debug": {
+    "reason": "API key / network / model error"
+  }
+}
+
+NO silent failures allowed.
+
+🧠 FINAL SYSTEM REQUIREMENT
+
+The system must behave like:
+
+A single unified AI engine where all geopolitical simulation, chat, and verification logic flows through one controllable API with full debug visibility and no hidden failures.
+
+🚀 SUCCESS CRITERIA
+
+✔ engine route works
+✔ OpenAI actually called
+✔ debug shows real values
+✔ frontend correctly uses /api/engine
+✔ world state updates dynamically
+✔ no silent fallback hiding errors

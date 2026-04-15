@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { createDebugEntry, finalizeDebugEntry, debugMiddleware, getLogs, clearLogs } from "./debug.js";
-import { handleChat, handleVerifyNews, handleGenerateHeadlines, handleWorldState, handleCountryInfo, handleDecision } from "./engine.js";
+import { handleChat, handleVerifyNews, handleGenerateHeadlines, handleWorldState, handleCountryInfo, handleDecision, handleDebug, recordEngineHit, recordEngineError } from "./engine.js";
 import { getOpenAIKey } from "./openai.js";
 
 const app = express();
@@ -18,6 +18,7 @@ const HANDLERS = {
   generate_headlines: handleGenerateHeadlines,
   world_state: handleWorldState,
   country_info: handleCountryInfo,
+  debug: handleDebug,
 };
 
 app.post("/api/engine", async (req, res) => {
@@ -35,6 +36,7 @@ app.post("/api/engine", async (req, res) => {
     });
   }
 
+  recordEngineHit(type, payload);
   const debugEntry = createDebugEntry(type, payload);
 
   try {
@@ -63,6 +65,7 @@ app.post("/api/engine", async (req, res) => {
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : "Internal server error";
     console.error(`[ENGINE CRASH] ${type}:`, errMsg);
+    recordEngineError(type, errMsg);
 
     const finalized = finalizeDebugEntry(debugEntry, null, { error: errMsg, ai_used: false });
 
