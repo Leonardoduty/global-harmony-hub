@@ -1,0 +1,202 @@
+🚀 REPLIT MASTER BUILD PROMPT — GLOBAL GOVERNANCE AI SIMULATOR PLATFORM
+
+You are to build a full-stack web application called:
+
+🌍 “Global Governance AI Simulator”
+
+This is a highly advanced AI geopolitical simulation system with a living world state, real-time decision impact, AI chatbot intelligence, and news verification.
+
+The system must be modular, API-driven, and fully interactive.
+
+🧠 CORE TECH STACK
+Frontend:
+React (Vite preferred)
+Tailwind CSS
+Framer Motion (animations recommended)
+Backend:
+Node.js + Express
+Database:
+MongoDB (preferred) or SQLite fallback
+AI LAYER (IMPORTANT):
+❌ REMOVE ANY MiniMax / other AI providers
+✅ USE ONLY OpenAI API
+API key will be provided via .env
+
+Example:
+
+OPENAI_API_KEY=your_key_here
+
+All AI responses must go through OpenAI only.
+
+Real-time:
+Socket.io (optional but recommended)
+🔌 REQUIRED API ARCHITECTURE
+
+Create a unified backend system with the following APIs:
+
+🤖 1. CHATBOT API (FULLY AI POWERED)
+Endpoint:
+
+POST /api/chat
+
+Features:
+Uses OpenAI API for all responses
+Maintains session memory per user
+Adapts responses based on global world state
+Supports advisor personalities:
+Economic Advisor
+Military Advisor
+Diplomatic Advisor
+Request:
+{
+  "message": "User message here",
+  "advisor": "Diplomatic Advisor",
+  "sessionId": "user123"
+}
+Response:
+{
+  "reply": "AI response text",
+  "advisor": "Diplomatic Advisor",
+  "confidence": 0.92
+}
+🌍 2. GLOBAL INTELLIGENCE MAP API
+Endpoint:
+
+GET /api/world-state
+
+Features:
+Returns live geopolitical simulation state
+Must update dynamically based on user actions
+Stored in database
+Response:
+{
+  "active_conflicts": ["Region A vs Region B"],
+  "resolved_conflicts": ["Country X peace treaty"],
+  "alliances": ["Alliance Alpha", "Trade Pact Z"],
+  "global_peace_index": 72,
+  "economic_stability": 65,
+  "war_risk_level": 40
+}
+🎮 3. PRESIDENTIAL SIMULATOR API (CORE ENGINE)
+Endpoint:
+
+POST /api/president/action
+
+Function:
+
+This is the core decision simulation engine.
+
+Behavior:
+Generate RANDOM geopolitical scenarios (using OpenAI if needed)
+User chooses an action
+OpenAI evaluates consequences realistically
+Updates global state in database
+Every action changes world simulation permanently
+Example Scenarios:
+Border conflict escalation
+Trade agreement negotiation
+Cyber attack suspicion
+Refugee crisis
+Climate disaster emergency
+Diplomatic breakdown
+Request:
+{
+  "choice": "Send peace treaty / Declare sanctions / Ignore / Negotiate",
+  "sessionId": "user123"
+}
+Response:
+{
+  "scenario": "Border tension rising between X and Y",
+  "impact": {
+    "diplomacy": +5,
+    "economy": -2,
+    "stability": -3
+  },
+  "result": "Tensions reduced due to diplomatic negotiation."
+}
+🛡️ 4. GLOBAL NEWS SHIELD (AI NEWS VERIFIER)
+Endpoint:
+
+POST /api/news/verify
+
+Function:
+
+Uses OpenAI to evaluate news credibility.
+
+Verification logic:
+Cross-check against global simulation state
+Detect inconsistencies
+Evaluate realism
+Assign credibility score
+Request:
+{
+  "headline": "Country X declares war on Country Y",
+  "content": "Full article text here"
+}
+Response:
+{
+  "verified": false,
+  "credibility_score": 32,
+  "reason": "No matching global conflict exists + narrative inconsistency detected",
+  "classification": "Fake / Unverified / Misleading"
+}
+🧭 FRONTEND MODULES
+1. 🌍 Global Map Dashboard
+Shows world map visualization
+Red = active conflict
+Green = stable regions
+Yellow = risk zones
+Live updates from /api/world-state
+2. 🎮 Presidential Control Panel
+AI-generated crisis cards
+Decision buttons
+Live impact updates
+Animated feedback system
+3. 📰 News Shield Interface
+Input news article
+Shows verification result
+Credibility meter (0–100 bar)
+AI explanation panel
+4. 🤖 CHATBOT PANEL
+Chat UI interface
+Advisor selection
+Memory-based conversation
+Uses OpenAI API + world state context
+🧠 CORE SYSTEM LOGIC RULES
+Every presidential decision permanently modifies world state
+World state evolves dynamically over time
+Chatbot MUST read current world state before responding
+News verification MUST compare against simulation database
+All systems are interconnected (living world simulation)
+⚙️ OPTIONAL ADVANCED FEATURES (IF POSSIBLE)
+
+🔥 Auto-generated world events every 60 seconds
+🔥 AI war probability engine
+🔥 Country reputation system
+🔥 Treaty negotiation builder
+🔥 Leader personality stats
+🔥 UN-style AI-generated reports
+🔥 Global economy simulation model
+
+🎨 UI / UX REQUIREMENTS
+Futuristic cyber-diplomacy theme
+Dark mode default
+Glowing interactive world map
+Smooth animated transitions
+Card-based crisis system
+Mobile responsive design
+🧠 FINAL VISION
+
+This is NOT a normal web app.
+
+It must feel like:
+
+A real-time AI-powered geopolitical simulation engine where every decision reshapes global history.
+
+⚡ CRITICAL REQUIREMENT SUMMARY
+❌ No MiniMax or other AI providers
+✅ ONLY OpenAI API
+✅ Full backend + frontend integration
+✅ Persistent world state
+✅ Fully working chatbot
+✅ Real simulation logic
