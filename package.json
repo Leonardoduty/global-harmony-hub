@@ -4,6 +4,7 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
+    "start": "node server/index.js",
     "dev": "concurrently \"vite dev\" \"node server/index.js\" --names \"vite,api\" --prefix-colors \"cyan,green\" --kill-others-on-fail",
     "dev:vite": "vite dev",
     "dev:api": "node server/index.js",

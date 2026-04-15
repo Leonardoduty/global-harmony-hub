@@ -8,7 +8,7 @@ let _openaiClient = null;
 let _lastOpenAIKey = null;
 
 export function getOpenAIKey() {
-  return process.env.OPENAI_API_KEY?.trim() || null;
+  return process.env.OPENAI_API_KEY?.trim();
 }
 
 function getOpenRouterKey() {

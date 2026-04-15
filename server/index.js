@@ -1,6 +1,6 @@
+import "dotenv/config";
 console.log("RAW ENV TEST:", process.env.OPENAI_API_KEY);
 console.log("🚀 SERVER FILE STARTED");
-import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { createDebugEntry, finalizeDebugEntry, debugMiddleware, getLogs, clearLogs } from "./debug.js";
@@ -160,7 +160,7 @@ app.listen(PORT, "0.0.0.0", () => {
   if (!hasOpenRouter && !hasOpenAI) {
     console.warn(`[API ENGINE] ⚠  No AI keys found — set OPENAI_API_KEY or OPENROUTER_API_KEY to enable live AI.`);
   }
-  
+
   console.log(`[API ENGINE] Endpoints: POST /api/engine, GET /api/debug/logs, GET /api/health\n`);
   console.log("✅ SERVER LISTEN CALLED");
 });

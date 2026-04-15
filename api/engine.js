@@ -1,9 +1,10 @@
+import { getOpenAIKey } from "./openai.js";
 export default async function handler(req, res) {
     try {
       const body = req.body || {};
       const prompt = body.prompt || "Hello";
   
-      const openaiKey = process.env.OPENAI_API_KEY;
+      const openaiKey = getOpenAIKey();
       const openrouterKey = process.env.OPENROUTER_API_KEY;
   
       // ---------------- OPENAI ----------------
@@ -62,3 +63,7 @@ export default async function handler(req, res) {
       });
     }
   }
+  console.log("ENV CHECK:", {
+    openai: !!process.env.OPENAI_API_KEY,
+    openrouter: !!process.env.OPENROUTER_API_KEY,
+  });
