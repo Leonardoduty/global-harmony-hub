@@ -16,7 +16,7 @@ export default defineConfig({
     historyApiFallback: true,
     proxy: {
       "/api": {
-        target: "http://localhost:3001",
+        target: "https://global-harmony-hub.onrender.com",
         changeOrigin: true,
       },
     },
