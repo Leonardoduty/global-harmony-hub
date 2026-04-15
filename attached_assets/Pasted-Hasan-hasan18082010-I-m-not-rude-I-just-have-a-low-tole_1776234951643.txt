@@ -1,0 +1,316 @@
+Hasan
+hasan18082010
+I’m not rude, I just have a low tolerance for nonsense. 💀
+
+Hasan [TGG],  — 11:02 AM
+map should be api
+chat bot api
+remove the bottom texts
+it should have moving animations
+changing solours
+animations should be popping and miving
+Hasan [TGG],  — 11:18 AM
+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
+Hasan [TGG],  — 12:00 PM
+h
+DEBUG PANEL
+AUTO
+
+
+
+3
+
+message.txt
+3 KB
+hi u are very bad 
+Lew0k [RDVS],  — 12:05 PM
+🚀 MASTER REPLIT PROMPT — GLOBAL GOVERNANCE AI SIMULATOR (STABLE + OPENAI READY)
+
+You are building a full-stack AI-powered geopolitical simulation game called:
+
+🌍 GLOBAL GOVERNANCE AI SIMULATOR
+
+This is a living world system where every decision, message, and news event changes global stability dynamically.
+
+🧠 CORE GOAL
+
+Create a fully working, stable, production-ready simulation engine with:
+
+AI chatbot (OpenAI powered)
+Presidential decision simulator
+Global world state engine
+AI news verification system
+Animated immersive UI
+Full debugging panel
+⚙️ TECH STACK
+Frontend
+React (Vite)
+Tailwind CSS
+Framer Motion (mandatory for animations)
+Backend
+Node.js + Express
+AI
+OpenAI API ONLY (already configured in Replit Secrets)
+
+👉 DO NOT ask for API key in code
+👉 USE process.env.OPENAI_API_KEY
+
+Real-time (optional but recommended)
+Socket.io
+🔌 CORE API ARCHITECTURE (SINGLE ENGINE SYSTEM)
+⚡ ONE MAIN ENDPOINT ONLY
+POST /api/engine
+
+All systems must route through this single engine.
+
+REQUEST FORMAT
+{
+  "type": "chat | decision | verify_news | debug",
+  "payload": {},
+  "sessionId": "user123"
+}
+🤖 1. CHAT MODE (OPENAI POWERED)
+type: "chat"
+Uses OpenAI API
+Includes world state context
+Supports advisor roles:
+Diplomatic Advisor
+Economic Advisor
+Military Advisor
+RESPONSE:
+{
+  "reply": "AI response",
+  "advisor": "Diplomatic Advisor",
+  "confidence": 0.92
+}
+🎮 2. PRESIDENTIAL SIMULATION MODE
+type: "decision"
+FUNCTION:
+
+Generate geopolitical crisis scenarios dynamically and evaluate user decisions.
+
+SCENARIOS:
+war escalation
+trade deals
+cyber attacks
+protests
+climate disasters
+RESPONSE:
+{
+  "scenario": "Border tension rising between X and Y",
+  "impact": {
+    "diplomacy": +5,
+    "economy": -2,
+    "stability": -3
+  },
+  "result": "Crisis de-escalated through negotiation"
+}
+🛡️ 3. NEWS VERIFICATION MODE
+type: "verify_news"
+Uses OpenAI to check realism
+Compares with world state
+Outputs credibility score
+RESPONSE:
+{
+  "verified": false,
+  "credibility_score": 34,
+  "reason": "No matching global event exists",
+  "classification": "Fake / Misleading / Unverified"
+}
+🧠 4. DEBUG MODE (CRITICAL)
+type: "debug"
+
+Must return full system diagnostics.
+
+DEBUG RESPONSE FORMAT
+{
+... (76 lines left)
+
+message.txt
+5 KB
+I 
+One of the Best scripter VFX creator and Graphic designer
+Lew0k
+leonlikion
+He
+ 
+ 
+ 
+🚀 MASTER REPLIT PROMPT — GLOBAL GOVERNANCE AI SIMULATOR (STABLE + OPENAI READY)
+
+You are building a full-stack AI-powered geopolitical simulation game called:
+
+🌍 GLOBAL GOVERNANCE AI SIMULATOR
+
+This is a living world system where every decision, message, and news event changes global stability dynamically.
+
+🧠 CORE GOAL
+
+Create a fully working, stable, production-ready simulation engine with:
+
+AI chatbot (OpenAI powered)
+Presidential decision simulator
+Global world state engine
+AI news verification system
+Animated immersive UI
+Full debugging panel
+⚙️ TECH STACK
+Frontend
+React (Vite)
+Tailwind CSS
+Framer Motion (mandatory for animations)
+Backend
+Node.js + Express
+AI
+OpenAI API ONLY (already configured in Replit Secrets)
+
+👉 DO NOT ask for API key in code
+👉 USE process.env.OPENAI_API_KEY
+
+Real-time (optional but recommended)
+Socket.io
+🔌 CORE API ARCHITECTURE (SINGLE ENGINE SYSTEM)
+⚡ ONE MAIN ENDPOINT ONLY
+POST /api/engine
+
+All systems must route through this single engine.
+
+REQUEST FORMAT
+{
+  "type": "chat | decision | verify_news | debug",
+  "payload": {},
+  "sessionId": "user123"
+}
+🤖 1. CHAT MODE (OPENAI POWERED)
+type: "chat"
+Uses OpenAI API
+Includes world state context
+Supports advisor roles:
+Diplomatic Advisor
+Economic Advisor
+Military Advisor
+RESPONSE:
+{
+  "reply": "AI response",
+  "advisor": "Diplomatic Advisor",
+  "confidence": 0.92
+}
+🎮 2. PRESIDENTIAL SIMULATION MODE
+type: "decision"
+FUNCTION:
+
+Generate geopolitical crisis scenarios dynamically and evaluate user decisions.
+
+SCENARIOS:
+war escalation
+trade deals
+cyber attacks
+protests
+climate disasters
+RESPONSE:
+{
+  "scenario": "Border tension rising between X and Y",
+  "impact": {
+    "diplomacy": +5,
+    "economy": -2,
+    "stability": -3
+  },
+  "result": "Crisis de-escalated through negotiation"
+}
+🛡️ 3. NEWS VERIFICATION MODE
+type: "verify_news"
+Uses OpenAI to check realism
+Compares with world state
+Outputs credibility score
+RESPONSE:
+{
+  "verified": false,
+  "credibility_score": 34,
+  "reason": "No matching global event exists",
+  "classification": "Fake / Misleading / Unverified"
+}
+🧠 4. DEBUG MODE (CRITICAL)
+type: "debug"
+
+Must return full system diagnostics.
+
+DEBUG RESPONSE FORMAT
+{
+  "system_status": "healthy",
+  "openai_connected": true,
+  "latency_ms": 120,
+  "world_state_size": 12,
+  "last_error": null,
+  "recent_requests": [],
+  "server_uptime": 10293
+}
+🔍 EVERY API RESPONSE MUST ALSO INCLUDE OPTIONAL DEBUG BLOCK
+"debug": {
+  "route": "/api/engine",
+  "type": "chat",
+  "openai_used": true,
+  "fallback_used": false,
+  "latency_ms": 450
+}
+🌍 WORLD STATE ENGINE (CORE MEMORY SYSTEM)
+worldState = {
+  active_conflicts: [],
+  resolved_conflicts: [],
+  alliances: [],
+  global_peace_index: 70,
+  economic_stability: 65,
+  war_risk_level: 40
+}
+RULES:
+Every decision modifies world state
+Chatbot reads world state before responding
+News verification compares against world state
+State must persist in memory or database
+⚠️ STABILITY RULES (IMPORTANT)
+NEVER crash server
+ALWAYS wrap OpenAI calls in try/catch
+ALWAYS return fallback JSON if AI fails
+NEVER return undefined or empty responses
+🎨 FRONTEND REQUIREMENTS (VERY IMPORTANT)
+🌍 GLOBAL VISUAL STYLE:
+Cyber-diplomacy aesthetic
+Dark theme default
+Neon accents (blue / red / green)
+✨ ANIMATIONS REQUIRED:
+1. World Map (API DRIVEN)
+colors based on:
+peace index
+war risk
+active conflicts
+2. Crisis Cards
+pop-in animation
+glow pulse effect
+smooth transitions
+3. Buttons
+hover glow
+click ripple animation
+4. Background
+constantly shifting gradient based on global state
+🧩 UI CLEANUP RULE
+REMOVE unnecessary bottom text
+KEEP interface minimal and HUD-style
+Focus on immersion, not clutter
+🧠 FINAL SYSTEM VISION
+
+This system should feel like:
+
+A living AI geopolitical simulation engine where every decision changes the world and the UI visually reacts in real time.
+
+🚀 FINAL OUTPUT REQUIREMENTS
+
+The app must be:
+
+✔ fully functional
+✔ OpenAI connected (via secrets)
+✔ stable under all conditions
+✔ visually animated
+✔ debug-visible
+✔ world-state driven
+✔ single API engine based
+message.txt
+5 KB

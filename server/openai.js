@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 
 let _client = null;
+let _lastKey = null;
 
 export function getOpenAIKey() {
   return process.env.OPENAI_API_KEY?.trim() || null;
@@ -9,7 +10,14 @@ export function getOpenAIKey() {
 export function getOpenAIClient() {
   const key = getOpenAIKey();
   if (!key) return null;
-  if (!_client) _client = new OpenAI({ apiKey: key });
+  if (!_client || _lastKey !== key) {
+    const isOpenRouter = key.startsWith("sk-or-");
+    _client = new OpenAI({
+      apiKey: key,
+      ...(isOpenRouter ? { baseURL: "https://openrouter.ai/api/v1" } : {}),
+    });
+    _lastKey = key;
+  }
   return _client;
 }
 

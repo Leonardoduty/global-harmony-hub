@@ -1,19 +1,69 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Map, Shield, Zap, Users, AlertTriangle, ArrowRight, Clock } from "lucide-react";
-import heroImg from "@/assets/hero-globe.jpg";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Map, Shield, Zap, Users, AlertTriangle, ArrowRight, Clock, Radio, Globe, Activity } from "lucide-react";
+import { engineGetWorldState } from "@/lib/apiEngine";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Global Pulse — Harmony Monitor" },
-      { name: "description", content: "Monitor global conflicts, verify news, simulate presidential decisions, and explore community peace initiatives." },
+      { name: "description", content: "AI-powered geopolitical simulation. Monitor conflicts, verify news, simulate decisions." },
     ],
   }),
   component: Index,
 });
 
-function MapPreview() {
-  const hotspots = [
+type WorldState = {
+  global_peace_index: number;
+  war_risk_level: number;
+  economic_stability: number;
+  active_conflicts: string[];
+  alliances: string[];
+};
+
+function useLiveWorldState() {
+  const [state, setState] = useState<WorldState | null>(null);
+  useEffect(() => {
+    let alive = true;
+    async function fetch() {
+      try {
+        const res = await engineGetWorldState();
+        if (alive && res.ok && res.data?.state) setState(res.data.state as WorldState);
+      } catch {}
+    }
+    fetch();
+    const id = setInterval(fetch, 8000);
+    return () => { alive = false; clearInterval(id); };
+  }, []);
+  return state;
+}
+
+function AnimatedBackground({ peaceIndex }: { peaceIndex: number }) {
+  const risk = 100 - peaceIndex;
+  const r = Math.round(5 + risk * 0.8);
+  const g = Math.round(5 + peaceIndex * 0.3);
+  const b = Math.round(15 + peaceIndex * 0.5);
+  const glow1 = risk > 50 ? `rgba(180,10,10,${(risk - 50) * 0.003})` : `rgba(10,80,180,${(50 - risk) * 0.004})`;
+  const glow2 = risk > 30 ? `rgba(239,68,68,${risk * 0.002})` : `rgba(34,197,94,${(100 - risk) * 0.003})`;
+
+  return (
+    <motion.div
+      className="fixed inset-0 pointer-events-none z-0"
+      animate={{
+        background: [
+          `radial-gradient(ellipse 120% 60% at 20% 50%, ${glow1} 0%, rgb(${r},${g},${b}) 60%)`,
+          `radial-gradient(ellipse 120% 60% at 80% 50%, ${glow2} 0%, rgb(${r},${g},${b}) 60%)`,
+          `radial-gradient(ellipse 120% 60% at 50% 30%, ${glow1} 0%, rgb(${r},${g},${b}) 60%)`,
+        ],
+      }}
+      transition={{ duration: 8, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
+    />
+  );
+}
+
+function LiveMapPreview({ conflicts }: { conflicts: string[] }) {
+  const baseHotspots = [
     { label: "Ukraine", x: "56%", y: "30%", color: "#ef4444" },
     { label: "Sudan", x: "54%", y: "53%", color: "#ef4444" },
     { label: "Gaza", x: "55%", y: "38%", color: "#f97316" },
@@ -25,170 +75,425 @@ function MapPreview() {
   ];
 
   return (
-    <div className="relative w-full rounded-lg overflow-hidden" style={{ aspectRatio: "2/1", background: "#05050f" }}>
+    <div className="relative w-full rounded-xl overflow-hidden border border-white/8" style={{ aspectRatio: "2/1", background: "#05050f" }}>
       <img
         src="/world-terrain.png"
         alt="World map"
         className="absolute inset-0 w-full h-full object-cover"
-        style={{ opacity: 0.5, mixBlendMode: "luminosity" }}
+        style={{ opacity: 0.45, mixBlendMode: "luminosity" }}
         draggable={false}
       />
-      <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, rgba(180,10,10,0.08) 0%, rgba(5,5,15,0.4) 100%)" }} />
+      <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, rgba(180,10,10,0.06) 0%, rgba(5,5,15,0.5) 100%)" }} />
 
-      {hotspots.map((h) => (
-        <div
-          key={h.label}
-          className="absolute flex items-center gap-1"
-          style={{ left: h.x, top: h.y, transform: "translate(-50%,-50%)" }}
-        >
-          <span
-            className="w-2 h-2 rounded-full inline-block animate-pulse"
-            style={{ background: h.color, boxShadow: `0 0 6px ${h.color}` }}
-          />
-          <span className="font-mono text-[9px] text-white/60 hidden sm:inline">{h.label}</span>
-        </div>
-      ))}
+      {baseHotspots.map((h, i) => {
+        const isActive = conflicts.some(c => c.toLowerCase().includes(h.label.toLowerCase()));
+        return (
+          <motion.div
+            key={h.label}
+            className="absolute flex items-center gap-1"
+            style={{ left: h.x, top: h.y, transform: "translate(-50%,-50%)" }}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: i * 0.08, type: "spring", stiffness: 300 }}
+          >
+            <motion.span
+              className="w-2.5 h-2.5 rounded-full inline-block"
+              style={{ background: h.color, boxShadow: `0 0 ${isActive ? "12px" : "6px"} ${h.color}` }}
+              animate={{ scale: [1, isActive ? 1.6 : 1.2, 1], opacity: [1, 0.7, 1] }}
+              transition={{ duration: isActive ? 1.2 : 2.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <span className="font-mono text-[9px] text-white/60 hidden sm:inline">{h.label}</span>
+          </motion.div>
+        );
+      })}
 
-      <div
+      <motion.div
         className="absolute top-2 right-2 flex flex-col items-center gap-1 px-2 py-1.5 rounded-lg"
-        style={{ background: "rgba(5,5,20,0.85)", border: "1px solid rgba(239,68,68,0.3)" }}
+        style={{ background: "rgba(5,5,20,0.9)", border: "1px solid rgba(239,68,68,0.4)" }}
+        animate={{ borderColor: ["rgba(239,68,68,0.4)", "rgba(239,68,68,0.9)", "rgba(239,68,68,0.4)"] }}
+        transition={{ duration: 2, repeat: Infinity }}
       >
         <Clock className="w-3 h-3 text-red-400" />
         <span className="font-mono text-[9px] text-red-400 font-bold">1:45</span>
         <span className="font-mono text-[7px] text-white/30">TO MIDNIGHT</span>
-      </div>
-
-      <div className="absolute bottom-2 left-2 flex gap-2">
-        {[
-          { color: "#ef4444", label: "Conflict" },
-          { color: "#facc15", label: "Elevated" },
-          { color: "#22c55e", label: "Stable" },
-        ].map((l) => (
-          <div key={l.label} className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: l.color }} />
-            <span className="font-mono text-[8px] text-white/40">{l.label}</span>
-          </div>
-        ))}
-      </div>
+      </motion.div>
 
       <div className="absolute inset-0 flex items-center justify-center">
-        <div
-          className="font-mono text-xs text-white/40 flex items-center gap-2 px-3 py-1.5 rounded-full"
-          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
+        <motion.div
+          className="font-mono text-xs text-white/50 flex items-center gap-2 px-3 py-1.5 rounded-full"
+          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
+          whileHover={{ scale: 1.05, background: "rgba(255,255,255,0.1)" }}
         >
           <Map className="w-3 h-3" />
           Open Interactive Map
-        </div>
+        </motion.div>
       </div>
     </div>
   );
 }
 
-function Index() {
+function StabilityRing({ value }: { value: number }) {
+  const r = 42;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (value / 100) * circ;
+  const color = value > 70 ? "#22c55e" : value > 45 ? "#facc15" : "#ef4444";
+
   return (
-    <div>
-      {/* Hero */}
-      <section className="relative h-[50vh] min-h-[400px] flex items-center justify-center overflow-hidden">
-        <img src={heroImg} alt="Global network" className="absolute inset-0 w-full h-full object-cover" width={1920} height={600} />
-        <div className="gp-hero-overlay" />
-        <div className="relative z-10 text-center px-4">
-          <h1 className="font-display text-4xl md:text-6xl font-black text-primary-foreground tracking-wider mb-3">
-            GLOBAL PULSE
-          </h1>
-          <p className="font-mono text-sm md:text-base tracking-[0.4em] text-primary-foreground/80 uppercase">
-            Harmony Monitor
-          </p>
-          <p className="mt-4 max-w-lg mx-auto text-sm text-primary-foreground/70">
-            Real-time conflict monitoring, verified news, and diplomatic simulations for a more peaceful world.
-          </p>
-        </div>
-      </section>
+    <div className="relative w-28 h-28 mx-auto">
+      <svg className="w-full h-full -rotate-90" viewBox="0 0 96 96">
+        <circle cx="48" cy="48" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+        <motion.circle
+          cx="48" cy="48" r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          initial={{ strokeDashoffset: circ }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 1.5, ease: "easeOut" }}
+          style={{ filter: `drop-shadow(0 0 6px ${color})` }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <motion.span
+          className="font-mono text-2xl font-black"
+          style={{ color }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          {value}
+        </motion.span>
+        <span className="font-mono text-[9px] text-white/40 uppercase">/ 100</span>
+      </div>
+    </div>
+  );
+}
 
-      {/* Dashboard Grid */}
-      <section className="max-w-7xl mx-auto px-4 py-10">
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Map Card */}
-          <Link to="/conflict-map" className="lg:col-span-2 gp-card group">
-            <div className="flex items-center gap-2 mb-3">
-              <Map className="w-5 h-5 text-primary" />
-              <span className="gp-card-header mb-0">Global Situation Map</span>
-            </div>
-            <MapPreview />
-            <div className="flex items-center gap-1 mt-3 text-sm text-primary font-semibold group-hover:gap-2 transition-all">
-              Open Intelligence Map <ArrowRight className="w-4 h-4" />
-            </div>
-          </Link>
+const cardVariants = {
+  hidden: { opacity: 0, y: 28, scale: 0.97 },
+  visible: (i: number) => ({
+    opacity: 1, y: 0, scale: 1,
+    transition: { delay: i * 0.1, type: "spring", stiffness: 220, damping: 22 },
+  }),
+};
 
-          {/* Emergency Briefing */}
-          <Link to="/situation-room" className="gp-card group flex flex-col justify-between">
-            <div>
+function GlowCard({ children, className = "", style = {}, delay = 0, to }: {
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+  delay?: number;
+  to: string;
+}) {
+  return (
+    <motion.div
+      custom={delay}
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      whileHover={{ y: -4, boxShadow: "0 0 32px rgba(96,165,250,0.18), 0 8px 40px rgba(0,0,0,0.5)" }}
+      transition={{ type: "spring", stiffness: 300, damping: 24 }}
+      className={className}
+      style={style}
+    >
+      <Link to={to} className="block w-full h-full">
+        {children}
+      </Link>
+    </motion.div>
+  );
+}
+
+function ConflictTicker({ conflicts }: { conflicts: string[] }) {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (conflicts.length < 2) return;
+    const id = setInterval(() => setIdx(i => (i + 1) % conflicts.length), 3000);
+    return () => clearInterval(id);
+  }, [conflicts.length]);
+
+  if (!conflicts.length) return null;
+
+  return (
+    <div className="flex items-center gap-3 overflow-hidden">
+      <span className="font-mono text-[9px] text-red-400 uppercase tracking-widest shrink-0 flex items-center gap-1">
+        <motion.span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" animate={{ opacity: [1, 0, 1] }} transition={{ duration: 1, repeat: Infinity }} />
+        LIVE
+      </span>
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={idx}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.3 }}
+          className="font-mono text-[10px] text-white/60 truncate"
+        >
+          {conflicts[idx]}
+        </motion.span>
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function Index() {
+  const ws = useLiveWorldState();
+  const peaceIndex = ws?.global_peace_index ?? 72;
+  const warRisk = ws?.war_risk_level ?? 40;
+  const conflicts = ws?.active_conflicts ?? [];
+  const econ = ws?.economic_stability ?? 65;
+
+  return (
+    <div className="relative min-h-screen" style={{ background: "#05050f" }}>
+      <AnimatedBackground peaceIndex={peaceIndex} />
+
+      <div className="relative z-10">
+        {/* Hero */}
+        <section className="relative h-[46vh] min-h-[360px] flex items-center justify-center overflow-hidden">
+          <img src="/world-terrain.png" alt="" className="absolute inset-0 w-full h-full object-cover" style={{ opacity: 0.18 }} />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(5,5,15,0.3) 0%, rgba(5,5,15,0.85) 100%)" }} />
+
+          <div className="relative z-10 text-center px-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
+            >
+              <motion.h1
+                className="font-mono text-5xl md:text-7xl font-black tracking-[0.15em] text-white uppercase"
+                style={{ textShadow: "0 0 40px rgba(96,165,250,0.4), 0 0 80px rgba(96,165,250,0.15)" }}
+                animate={{ textShadow: [
+                  "0 0 40px rgba(96,165,250,0.4), 0 0 80px rgba(96,165,250,0.15)",
+                  "0 0 60px rgba(96,165,250,0.7), 0 0 120px rgba(96,165,250,0.25)",
+                  "0 0 40px rgba(96,165,250,0.4), 0 0 80px rgba(96,165,250,0.15)",
+                ]}}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              >
+                GLOBAL PULSE
+              </motion.h1>
+              <motion.p
+                className="font-mono text-sm md:text-base tracking-[0.5em] text-blue-300/70 uppercase mt-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+              >
+                Harmony Monitor
+              </motion.p>
+            </motion.div>
+
+            <motion.div
+              className="mt-6 flex items-center justify-center gap-6 flex-wrap"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+            >
+              <div className="flex items-center gap-2 font-mono text-[11px] text-white/50">
+                <Activity className="w-3 h-3 text-green-400" />
+                <span>Peace Index: <span className="text-green-400 font-bold">{peaceIndex}</span></span>
+              </div>
+              <div className="flex items-center gap-2 font-mono text-[11px] text-white/50">
+                <Radio className="w-3 h-3 text-red-400" />
+                <span>War Risk: <span className="text-red-400 font-bold">{warRisk}%</span></span>
+              </div>
+              <div className="flex items-center gap-2 font-mono text-[11px] text-white/50">
+                <Globe className="w-3 h-3 text-blue-400" />
+                <span>Econ Stability: <span className="text-blue-400 font-bold">{econ}</span></span>
+              </div>
+            </motion.div>
+
+            {conflicts.length > 0 && (
+              <motion.div
+                className="mt-4 mx-auto max-w-sm px-4 py-2 rounded-full"
+                style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.9 }}
+              >
+                <ConflictTicker conflicts={conflicts} />
+              </motion.div>
+            )}
+          </div>
+        </section>
+
+        {/* Dashboard Grid */}
+        <section className="max-w-7xl mx-auto px-4 py-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+            {/* Map Card */}
+            <GlowCard
+              to="/conflict-map"
+              delay={0}
+              className="lg:col-span-2 rounded-xl p-5 cursor-pointer group"
+              style={{ background: "rgba(8,8,20,0.85)", border: "1px solid rgba(96,165,250,0.15)", backdropFilter: "blur(12px)" }}
+            >
               <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle className="w-5 h-5 text-gold" />
-                <span className="gp-card-header mb-0">Emergency Situation Briefing</span>
+                <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }}>
+                  <Map className="w-4 h-4 text-blue-400" />
+                </motion.div>
+                <span className="font-mono text-xs font-bold text-white/70 uppercase tracking-widest">Global Situation Map</span>
+                <span className="ml-auto font-mono text-[9px] text-green-400 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse inline-block" />
+                  LIVE
+                </span>
               </div>
-              <div className="bg-muted rounded-md p-4 text-center">
-                <div className="w-16 h-16 mx-auto rounded-full bg-primary/15 flex items-center justify-center mb-3">
-                  <span className="text-3xl">🕊️</span>
-                </div>
-                <p className="text-sm text-foreground">Global Stability Index</p>
-                <p className="font-display text-3xl font-bold text-primary">72/100</p>
+              <LiveMapPreview conflicts={conflicts} />
+              <div className="flex items-center gap-1 mt-3 text-xs font-mono text-blue-400 group-hover:gap-2 transition-all">
+                Open Intelligence Map <ArrowRight className="w-3 h-3" />
               </div>
-            </div>
-            <div className="flex items-center gap-1 mt-4 text-sm text-primary font-semibold group-hover:gap-2 transition-all">
-              Enter Situation Room <ArrowRight className="w-4 h-4" />
-            </div>
-          </Link>
+            </GlowCard>
 
-          {/* News Shield */}
-          <Link to="/news-shield" className="gp-card group">
-            <div className="flex items-center gap-2 mb-3">
-              <Shield className="w-5 h-5 text-primary" />
-              <span className="gp-card-header mb-0">Global News Shield</span>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm">
-                <span className="font-mono text-xs text-muted-foreground">FACT CHECKLINE</span>
+            {/* Stability */}
+            <GlowCard
+              to="/situation-room"
+              delay={1}
+              className="rounded-xl p-5 cursor-pointer group flex flex-col"
+              style={{ background: "rgba(8,8,20,0.85)", border: "1px solid rgba(250,204,21,0.15)", backdropFilter: "blur(12px)" }}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                <span className="font-mono text-xs font-bold text-white/70 uppercase tracking-widest">Situation Briefing</span>
               </div>
-              <div className="bg-muted rounded-md p-3">
-                <div className="flex items-center gap-2 text-sm font-bold text-primary">✓ VERIFIED STORY</div>
-                <p className="text-xs text-muted-foreground font-mono mt-1">[AI Analysis]</p>
+              <StabilityRing value={peaceIndex} />
+              <p className="font-mono text-[10px] text-white/40 text-center mt-3 uppercase tracking-wider">Global Stability</p>
+              <div className="mt-4 space-y-1.5">
+                {[
+                  { label: "War Risk", value: warRisk, color: "#ef4444" },
+                  { label: "Econ", value: econ, color: "#60a5fa" },
+                ].map(({ label, value, color }) => (
+                  <div key={label} className="flex items-center gap-2">
+                    <span className="font-mono text-[9px] text-white/35 w-14">{label}</span>
+                    <div className="flex-1 bg-white/5 rounded-full h-1.5 overflow-hidden">
+                      <motion.div
+                        className="h-full rounded-full"
+                        style={{ background: color, boxShadow: `0 0 6px ${color}` }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${value}%` }}
+                        transition={{ duration: 1.2, ease: "easeOut" }}
+                      />
+                    </div>
+                    <span className="font-mono text-[9px] font-bold" style={{ color }}>{value}</span>
+                  </div>
+                ))}
               </div>
-            </div>
-            <div className="flex items-center gap-1 mt-4 text-sm text-primary font-semibold group-hover:gap-2 transition-all">
-              Open News Shield <ArrowRight className="w-4 h-4" />
-            </div>
-          </Link>
+              <div className="flex items-center gap-1 mt-4 text-xs font-mono text-yellow-400 group-hover:gap-2 transition-all">
+                Enter Situation Room <ArrowRight className="w-3 h-3" />
+              </div>
+            </GlowCard>
 
-          {/* Presidential Sim */}
-          <Link to="/presidential-sim" className="gp-card group">
-            <div className="flex items-center gap-2 mb-3">
-              <Zap className="w-5 h-5 text-gold" />
-              <span className="gp-card-header mb-0">Presidential Simulation</span>
-            </div>
-            <p className="text-sm text-muted-foreground">Step into the role of a world leader. Make critical decisions that shape global peace.</p>
-            <div className="flex items-center gap-1 mt-4 text-sm text-primary font-semibold group-hover:gap-2 transition-all">
-              Start Simulation <ArrowRight className="w-4 h-4" />
-            </div>
-          </Link>
+            {/* News Shield */}
+            <GlowCard
+              to="/news-shield"
+              delay={2}
+              className="rounded-xl p-5 cursor-pointer group"
+              style={{ background: "rgba(8,8,20,0.85)", border: "1px solid rgba(34,197,94,0.15)", backdropFilter: "blur(12px)" }}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <Shield className="w-4 h-4 text-green-400" />
+                <span className="font-mono text-xs font-bold text-white/70 uppercase tracking-widest">News Shield</span>
+              </div>
+              <div className="space-y-2">
+                {["AI Fact-Checking", "Credibility Score", "Source Analysis"].map((f, i) => (
+                  <motion.div
+                    key={f}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2"
+                    style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.12)" }}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 + i * 0.1 }}
+                  >
+                    <motion.span
+                      className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0"
+                      animate={{ scale: [1, 1.4, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, delay: i * 0.4 }}
+                    />
+                    <span className="font-mono text-[10px] text-white/60">{f}</span>
+                  </motion.div>
+                ))}
+              </div>
+              <div className="flex items-center gap-1 mt-4 text-xs font-mono text-green-400 group-hover:gap-2 transition-all">
+                Verify News <ArrowRight className="w-3 h-3" />
+              </div>
+            </GlowCard>
 
-          {/* Community Stories */}
-          <Link to="/situation-room" className="gp-card group">
-            <div className="flex items-center gap-2 mb-3">
-              <Users className="w-5 h-5 text-primary" />
-              <span className="gp-card-header mb-0">Community Success Stories</span>
-            </div>
-            <p className="text-sm text-muted-foreground">Discover how communities worldwide are building peace through grassroots initiatives.</p>
-            <div className="flex items-center gap-1 mt-4 text-sm text-primary font-semibold group-hover:gap-2 transition-all">
-              Read Stories <ArrowRight className="w-4 h-4" />
-            </div>
-          </Link>
-        </div>
-      </section>
+            {/* Presidential Sim */}
+            <GlowCard
+              to="/presidential-sim"
+              delay={3}
+              className="rounded-xl p-5 cursor-pointer group"
+              style={{ background: "rgba(8,8,20,0.85)", border: "1px solid rgba(250,204,21,0.15)", backdropFilter: "blur(12px)" }}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <motion.div
+                  animate={{ rotate: [0, 15, -15, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <Zap className="w-4 h-4 text-yellow-400" />
+                </motion.div>
+                <span className="font-mono text-xs font-bold text-white/70 uppercase tracking-widest">Presidential Sim</span>
+              </div>
+              <div className="space-y-2 mb-4">
+                {["War escalation", "Trade deals", "Cyber attacks", "Climate crisis"].map((s, i) => (
+                  <motion.div
+                    key={s}
+                    className="font-mono text-[10px] text-white/40 flex items-center gap-2"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: [0.4, 0.8, 0.4] }}
+                    transition={{ duration: 3, repeat: Infinity, delay: i * 0.7 }}
+                  >
+                    <span className="w-1 h-1 rounded-full bg-yellow-400/60 shrink-0" />
+                    {s}
+                  </motion.div>
+                ))}
+              </div>
+              <div className="flex items-center gap-1 mt-2 text-xs font-mono text-yellow-400 group-hover:gap-2 transition-all">
+                Start Simulation <ArrowRight className="w-3 h-3" />
+              </div>
+            </GlowCard>
 
-      {/* Footer */}
-      <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground font-mono">
-        Developed in Gwalior, India | Data sourced from verified partners | © 2026 GLOBAL PULSE
-      </footer>
+            {/* Active Conflicts */}
+            <GlowCard
+              to="/situation-room"
+              delay={4}
+              className="rounded-xl p-5 cursor-pointer group"
+              style={{ background: "rgba(8,8,20,0.85)", border: "1px solid rgba(239,68,68,0.15)", backdropFilter: "blur(12px)" }}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <Users className="w-4 h-4 text-red-400" />
+                <span className="font-mono text-xs font-bold text-white/70 uppercase tracking-widest">Active Conflicts</span>
+                <span className="ml-auto font-mono text-xs font-black text-red-400">{conflicts.length}</span>
+              </div>
+              <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                <AnimatePresence>
+                  {conflicts.slice(0, 5).map((c, i) => (
+                    <motion.div
+                      key={c}
+                      className="flex items-center gap-2 rounded-lg px-3 py-1.5"
+                      style={{ background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.1)" }}
+                      initial={{ opacity: 0, x: 12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.08 }}
+                    >
+                      <motion.span
+                        className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"
+                        animate={{ opacity: [1, 0.4, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.3 }}
+                      />
+                      <span className="font-mono text-[10px] text-white/55 leading-tight">{c}</span>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                {!conflicts.length && (
+                  <p className="font-mono text-[10px] text-white/25 text-center py-4">Loading conflict data...</p>
+                )}
+              </div>
+              <div className="flex items-center gap-1 mt-3 text-xs font-mono text-red-400 group-hover:gap-2 transition-all">
+                View Briefing <ArrowRight className="w-3 h-3" />
+              </div>
+            </GlowCard>
+
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
