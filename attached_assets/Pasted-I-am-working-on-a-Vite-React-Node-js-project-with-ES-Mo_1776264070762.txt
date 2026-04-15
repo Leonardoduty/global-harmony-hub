@@ -1,0 +1,61 @@
+I am working on a Vite + React + Node.js project with ES Modules enabled ("type": "module").
+
+The frontend is already fixed and rendering correctly.
+
+Now I need to FIX the backend AI integration so the system works reliably without depending on external environment variable systems like Replit secrets.
+
+Backend details:
+- server/index.js (Node.js, ES Modules)
+- Runs on port 3001
+- Endpoints:
+  - POST /api/engine
+  - GET /api/health
+
+Current issues:
+- API keys are not being detected (environment variables not working)
+- AI providers are always falling back to mock/fallback mode
+- dotenv caused errors earlier due to ESM/CommonJS mismatch
+- AI requests are not returning real responses
+
+GOAL:
+Make the backend AI system fully functional locally.
+
+REQUIREMENTS:
+
+1. Use ES Module syntax only (no require)
+2. Ensure the code runs with "type": "module"
+3. Fix API key handling:
+   - Either correctly configure dotenv for ESM
+   - OR hardcode API keys temporarily inside the file
+   - Keys must be easy to replace later
+
+4. Ensure AI provider integration works correctly:
+   - Handle multiple providers if present
+   - Implement proper request handling and fallback logic if one fails
+
+5. Fix API request logic:
+   - Use fetch (Node 18+ native) or a compatible library
+   - Proper headers:
+     Authorization: Bearer <API_KEY>
+     Content-Type: application/json
+
+6. Ensure endpoints work:
+   - POST /api/engine returns valid AI responses
+   - World state logic continues to work (fallback allowed if AI fails)
+
+7. Add clear logging:
+   - Show which provider is being used
+   - Show errors without crashing the server
+
+8. Preserve ALL existing logic and structure:
+   - Do NOT remove or redesign the engine
+   - Do NOT remove endpoints
+   - Only fix broken integrations
+
+9. Ensure server runs cleanly with:
+   npm run dev
+
+OUTPUT:
+- Provide FULL updated server/index.js
+- Clearly indicate where API keys are configured
+- Ensure code is clean, minimal, and production-safe (except temporary hardcoding if used)
