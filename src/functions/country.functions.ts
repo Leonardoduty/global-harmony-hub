@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { geminiGenerateFromMessages, getGeminiApiKey, stripJsonMarkdown } from "@/lib/gemini";
+import { openAIChat, stripJsonFences, getOpenAIKey } from "@/lib/openai";
 import { getMockCountryInfo } from "@/lib/mockCountryData";
 
 function unwrapRecord(raw: unknown): Record<string, unknown> | null {
@@ -137,24 +137,19 @@ export const getCountryInfo = createServerFn({ method: "POST" })
     };
 
     try {
-      const apiKey = getGeminiApiKey();
+      const apiKey = getOpenAIKey();
 
       if (!apiKey) {
         return serveMock("No API key configured — offline reference briefing.");
       }
 
       const contextBlock = data.gameContext
-        ? `
-
-The analyst is briefing a head-of-state whose administration context is:
-${data.gameContext}
-
-Adjust "relationships" (allied/hostile/neutral toward OTHER states) and "playerRelationship" to stay plausible given that context — these are simulator-facing ties, not personal opinions. Keep country names in English and match common map labels (e.g. "United States", "Russia").`
+        ? `\n\nThe analyst is briefing a head-of-state whose administration context is:\n${data.gameContext}\n\nAdjust "relationships" and "playerRelationship" to stay plausible given that context. Keep country names in English matching common map labels.`
         : "";
 
-      const result = await geminiGenerateFromMessages({
-        apiKey,
-        responseMimeType: "application/json",
+      const result = await openAIChat({
+        json: true,
+        temperature: 0.4,
         messages: [
           {
             role: "system",
@@ -173,7 +168,7 @@ Adjust "relationships" (allied/hostile/neutral toward OTHER states) and "playerR
   "stabilityScore": number (0-100),
   "summary": "2-3 sentence geopolitical summary",
   "currentSituation": "one sentence: war, peace, crisis, sanctions, normalization talks, etc.",
-  "playerRelationship": "one sentence: how this country likely relates to the player's administration right now",
+  "playerRelationship": "one sentence: how this country relates to the player's administration",
   "leader": {
     "name": "current leader name",
     "title": "their official title",
@@ -187,7 +182,7 @@ Adjust "relationships" (allied/hostile/neutral toward OTHER states) and "playerR
   }
 }
 
-Include 2-5 items per array. Focus on real, factual data. For stabilityScore: 0=failed state, 100=perfectly stable.${contextBlock}`,
+Include 2-5 items per array. Focus on real, factual data. stabilityScore: 0=failed state, 100=perfectly stable.${contextBlock}`,
           },
           {
             role: "user",
@@ -197,11 +192,11 @@ Include 2-5 items per array. Focus on real, factual data. For stabilityScore: 0=
       });
 
       if (!result.ok) {
-        console.error(`[CountryInfo] Gemini API error ${result.status}: ${result.message}`);
-        return serveMock(`Gemini error ${result.status}: ${result.message}`);
+        console.error(`[CountryInfo] OpenAI error: ${result.message}`);
+        return serveMock(`OpenAI error: ${result.message}`);
       }
 
-      const cleaned = stripJsonMarkdown(result.text);
+      const cleaned = stripJsonFences(result.text);
       let parsed: unknown;
       try {
         parsed = JSON.parse(cleaned);

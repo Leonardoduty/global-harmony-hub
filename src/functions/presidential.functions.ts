@@ -1,11 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import {
-  geminiGenerateFromMessages,
-  geminiGenerateImage,
-  getGeminiApiKey,
-  stripJsonMarkdown,
-} from "@/lib/gemini";
+import { openAIChat, openAIGenerateImage, stripJsonFences, getOpenAIKey } from "@/lib/openai";
 import { buildProceduralScenario } from "@/lib/proceduralCrisis";
+import { applyDecisionImpact, getWorldStateSnapshot } from "@/lib/worldState";
 
 function normalizeScenario(raw: unknown) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
@@ -35,7 +31,7 @@ function normalizeScenario(raw: unknown) {
       approval: num("approval") || 0,
     };
     const preview = opt.preview as Record<string, unknown> | undefined;
-    const mapPrev = (p: unknown): { diplomacy: number; economy: number; security: number; approval: number } | undefined => {
+    const mapPrev = (p: unknown) => {
       if (!p || typeof p !== "object") return undefined;
       const px = p as Record<string, unknown>;
       const n2 = (k: string) => { const v = px[k]; return typeof v === "number" && Number.isFinite(v) ? v : Number(v) || 0; };
@@ -84,10 +80,10 @@ export const generateScenario = createServerFn({ method: "POST" })
     }
   )
   .handler(async ({ data }) => {
-    const apiKey = getGeminiApiKey();
+    const apiKey = getOpenAIKey();
+    const worldContext = getWorldStateSnapshot();
 
     if (!apiKey) {
-      console.warn("[PresidentialSim] GEMINI_API_KEY not set — procedural crisis generator");
       const scenario = buildProceduralScenario({
         stats: data.stats,
         previousDecisions: data.previousDecisions,
@@ -98,100 +94,75 @@ export const generateScenario = createServerFn({ method: "POST" })
 
     try {
       const recentDecisions = data.previousDecisions.slice(-8);
-      const worldContext = data.worldEvents?.slice(-5).join("; ") || "";
+      const worldEvents = data.worldEvents?.slice(-5).join("; ") || "";
 
-      const result = await geminiGenerateFromMessages({
-        apiKey,
-        responseMimeType: "application/json",
+      const result = await openAIChat({
+        json: true,
+        temperature: 0.85,
         messages: [
           {
             role: "system",
-            content: `You are a presidential crisis scenario generator for an immersive geopolitical simulation game. The player is acting as the head of state.
-${data.country ? `\nThe player is leading ${data.country}. All scenarios must be geopolitically relevant to ${data.country}'s real-world position, alliances, rivals, and domestic pressures.\n` : ""}
-Current player stats:
+            content: `You are a presidential crisis scenario generator for an immersive geopolitical simulation.${data.country ? ` The player leads ${data.country} — scenarios must reflect its real geopolitical pressures, rivals, and alliances.` : ""}
+
+${worldContext}
+
+Player stats:
 - Diplomacy: ${data.stats.diplomacy}/100 (${data.stats.diplomacy < 30 ? "dangerously low" : data.stats.diplomacy > 70 ? "strong" : "moderate"})
 - Economy: ${data.stats.economy}/100 (${data.stats.economy < 30 ? "in recession" : data.stats.economy > 70 ? "thriving" : "stable"})
 - Security: ${data.stats.security}/100 (${data.stats.security < 30 ? "critical vulnerability" : data.stats.security > 70 ? "well defended" : "adequate"})
 - Approval: ${data.stats.approval}/100 (${data.stats.approval < 30 ? "political crisis" : data.stats.approval > 70 ? "strong mandate" : "contested"})
 
-Previous decisions (most recent): ${recentDecisions.join("; ") || "None yet — this is the first scenario."}
-${worldContext ? `Recent world events context: ${worldContext}` : ""}
-This is scenario #${data.scenarioCount + 1}.
+Previous decisions: ${recentDecisions.join("; ") || "None yet"}
+${worldEvents ? `Recent world events: ${worldEvents}` : ""}
+Scenario #${data.scenarioCount + 1}.
 
-CRITICAL RULES:
-1. REACT to and BUILD on previous decisions — if player was aggressive, show escalation; if diplomatic, show cooperation
-2. Target the player's weakest stat with pressure (create drama around it)
-3. Make all 3 options feel viable with genuine tradeoffs
-4. Never make one option obviously "best"
-5. Decisions should feel consequential and connected to the evolving narrative
+RULES: React to previous decisions, target weakest stat, make all 3 options feel viable with real tradeoffs, never make one obviously "best".
 
-Respond in this exact JSON format (no markdown, pure JSON):
+Respond ONLY with this exact JSON:
 {
-  "title": "Short, punchy crisis title (3-6 words)",
-  "description": "2-3 vivid sentences describing the crisis, referencing relevant history if applicable",
-  "imagePrompt": "Dense paragraph describing a cinematic editorial illustration: specific setting, generic human silhouettes (NO named politicians), mood, lighting, key symbolic objects, color palette. No text or logos in scene.",
+  "title": "Short punchy crisis title (3-6 words)",
+  "description": "2-3 vivid sentences describing the crisis",
+  "imagePrompt": "Dense paragraph: cinematic crisis scene, specific setting, silhouetted figures, mood/lighting, symbolic objects, color palette. NO named politicians, no text.",
   "options": [
     {
       "label": "Action label (5-9 words)",
-      "effects": { "diplomacy": integer(-25 to 25), "economy": integer(-25 to 25), "security": integer(-25 to 25), "approval": integer(-25 to 25) },
-      "preview": { "diplomacy": integer(-25 to 25), "economy": integer(-25 to 25), "security": integer(-25 to 25), "approval": integer(-25 to 25) },
-      "outcome": "2-3 vivid sentences describing what happens after this choice"
+      "effects": { "diplomacy": int, "economy": int, "security": int, "approval": int },
+      "preview": { "diplomacy": int, "economy": int, "security": int, "approval": int },
+      "outcome": "2-3 vivid sentences of what happens"
     }
   ]
 }
-
-The "preview" should show estimated effects visible BEFORE the player decides. Make them slightly different from actual "effects" for realism (actual consequences can be worse or better than predicted).
-Generate exactly 3 options.`,
+Generate exactly 3 options. All effect values between -25 and 25. Preview slightly differs from effects for realism.`,
           },
           {
             role: "user",
-            content: `Generate a compelling crisis scenario for decision #${data.scenarioCount + 1}.`,
+            content: `Generate scenario #${data.scenarioCount + 1}.`,
           },
         ],
       });
 
       if (!result.ok) {
-        console.error(`[PresidentialSim] Gemini error ${result.status}: ${result.message} — procedural scenario`);
-        const scenario = buildProceduralScenario({
-          stats: data.stats,
-          previousDecisions: data.previousDecisions,
-          scenarioCount: data.scenarioCount,
-        });
+        const scenario = buildProceduralScenario({ stats: data.stats, previousDecisions: data.previousDecisions, scenarioCount: data.scenarioCount });
         return { scenario, error: null, source: "fallback" as const };
       }
 
       let parsed: unknown;
       try {
-        parsed = JSON.parse(stripJsonMarkdown(result.text));
-      } catch (parseErr) {
-        console.error("[PresidentialSim] JSON parse error:", parseErr);
-        const scenario = buildProceduralScenario({
-          stats: data.stats,
-          previousDecisions: data.previousDecisions,
-          scenarioCount: data.scenarioCount,
-        });
+        parsed = JSON.parse(stripJsonFences(result.text));
+      } catch {
+        const scenario = buildProceduralScenario({ stats: data.stats, previousDecisions: data.previousDecisions, scenarioCount: data.scenarioCount });
         return { scenario, error: null, source: "fallback" as const };
       }
 
       const scenario = normalizeScenario(parsed);
       if (!scenario) {
-        console.warn("[PresidentialSim] Scenario normalization failed — procedural scenario");
-        const fallback = buildProceduralScenario({
-          stats: data.stats,
-          previousDecisions: data.previousDecisions,
-          scenarioCount: data.scenarioCount,
-        });
+        const fallback = buildProceduralScenario({ stats: data.stats, previousDecisions: data.previousDecisions, scenarioCount: data.scenarioCount });
         return { scenario: fallback, error: null, source: "fallback" as const };
       }
 
       return { scenario, error: null, source: "ai" as const };
     } catch (error) {
-      console.error("[PresidentialSim] Unexpected error:", error, "— procedural scenario");
-      const scenario = buildProceduralScenario({
-        stats: data.stats,
-        previousDecisions: data.previousDecisions,
-        scenarioCount: data.scenarioCount,
-      });
+      const scenario = buildProceduralScenario({ stats: data.stats, previousDecisions: data.previousDecisions, scenarioCount: data.scenarioCount });
       return { scenario, error: null, source: "fallback" as const };
     }
   });
@@ -226,8 +197,9 @@ export const finalizeDecision = createServerFn({ method: "POST" })
       return `Global Pulse: ${short} — cabinet backs "${data.choiceLabel.slice(0, 32)}${data.choiceLabel.length > 32 ? "…" : ""}"`;
     };
 
-    const apiKey = getGeminiApiKey();
+    const apiKey = getOpenAIKey();
     if (!apiKey) {
+      applyDecisionImpact({ ...clampedFallback, headline: wireHeadline() });
       return {
         appliedEffects: clampedFallback,
         narrativeOutcome: data.suggestedOutcome,
@@ -238,54 +210,48 @@ export const finalizeDecision = createServerFn({ method: "POST" })
     }
 
     try {
-      const result = await geminiGenerateFromMessages({
-        apiKey,
-        responseMimeType: "application/json",
+      const worldContext = getWorldStateSnapshot();
+      const result = await openAIChat({
+        json: true,
+        temperature: 0.7,
         messages: [
           {
             role: "system",
-            content: `Finalize a presidential simulation turn. Staff PUBLIC estimate of stat deltas: ${JSON.stringify(data.previewEffects)}. Operations baseline (true plan) deltas: ${JSON.stringify(data.fallbackEffects)}.
+            content: `Finalize a presidential simulation decision turn.
 
-Return ONLY JSON:
+${worldContext}
+
+Staff estimate deltas: ${JSON.stringify(data.previewEffects)}
+Operations baseline deltas: ${JSON.stringify(data.fallbackEffects)}
+
+Return ONLY this JSON:
 {
   "appliedEffects": { "diplomacy": int, "economy": int, "security": int, "approval": int },
-  "narrativeOutcome": "2-4 sentences — what actually happened on the ground and in corridors of power",
-  "followUp": "1-2 sentence teaser for the next crisis beat",
-  "newsHeadline": "Wire-service headline, max 14 words, no quotation marks inside"
+  "narrativeOutcome": "2-4 vivid sentences — what actually happened on the ground",
+  "followUp": "1-2 sentence teaser for the next crisis",
+  "newsHeadline": "Wire-service headline, max 14 words, no quotes inside"
 }
 
-Rules: each appliedEffects value between -25 and 25. appliedEffects should usually be close to the baseline but may deviate by a few points for realism. No markdown.`,
+appliedEffects values between -25 and 25. Usually close to baseline but may deviate slightly for realism.`,
           },
           {
             role: "user",
-            content: `Crisis title: ${data.scenarioTitle}\nSituation: ${data.scenarioDescription}\n\nChoice locked in: ${data.choiceLabel}\nDraft outcome: ${data.suggestedOutcome}\nCurrent stats: ${JSON.stringify(data.stats)}\nRecent decisions: ${data.decisionHistory.slice(-5).join(" | ") || "None"}`,
+            content: `Crisis: ${data.scenarioTitle}\nSituation: ${data.scenarioDescription}\nChoice: ${data.choiceLabel}\nDraft outcome: ${data.suggestedOutcome}\nCurrent stats: ${JSON.stringify(data.stats)}\nRecent decisions: ${data.decisionHistory.slice(-5).join(" | ") || "None"}`,
           },
         ],
       });
 
       if (!result.ok) {
-        console.error(`[finalizeDecision] Gemini error ${result.status}: ${result.message}`);
-        return {
-          appliedEffects: clampedFallback,
-          narrativeOutcome: data.suggestedOutcome,
-          followUp: null,
-          newsHeadline: wireHeadline(),
-          source: "fallback" as const,
-        };
+        applyDecisionImpact({ ...clampedFallback, headline: wireHeadline() });
+        return { appliedEffects: clampedFallback, narrativeOutcome: data.suggestedOutcome, followUp: null, newsHeadline: wireHeadline(), source: "fallback" as const };
       }
 
       let parsed: unknown;
       try {
-        parsed = JSON.parse(stripJsonMarkdown(result.text));
-      } catch (e) {
-        console.error("[finalizeDecision] JSON parse error:", e);
-        return {
-          appliedEffects: clampedFallback,
-          narrativeOutcome: data.suggestedOutcome,
-          followUp: null,
-          newsHeadline: wireHeadline(),
-          source: "fallback" as const,
-        };
+        parsed = JSON.parse(stripJsonFences(result.text));
+      } catch {
+        applyDecisionImpact({ ...clampedFallback, headline: wireHeadline() });
+        return { appliedEffects: clampedFallback, narrativeOutcome: data.suggestedOutcome, followUp: null, newsHeadline: wireHeadline(), source: "fallback" as const };
       }
 
       const p = parsed as Record<string, unknown>;
@@ -301,26 +267,23 @@ Rules: each appliedEffects value between -25 and 25. appliedEffects should usual
         };
       }
 
+      const headline =
+        typeof p.newsHeadline === "string" && p.newsHeadline.trim()
+          ? p.newsHeadline.trim()
+          : wireHeadline();
+
+      applyDecisionImpact({ ...appliedEffects, headline });
+
       return {
         appliedEffects,
-        narrativeOutcome:
-          typeof p.narrativeOutcome === "string" && p.narrativeOutcome.trim()
-            ? p.narrativeOutcome.trim()
-            : data.suggestedOutcome,
+        narrativeOutcome: typeof p.narrativeOutcome === "string" && p.narrativeOutcome.trim() ? p.narrativeOutcome.trim() : data.suggestedOutcome,
         followUp: typeof p.followUp === "string" && p.followUp.trim() ? p.followUp.trim() : null,
-        newsHeadline:
-          typeof p.newsHeadline === "string" && p.newsHeadline.trim() ? p.newsHeadline.trim() : wireHeadline(),
+        newsHeadline: headline,
         source: "ai" as const,
       };
-    } catch (err) {
-      console.error("[finalizeDecision] Unexpected error:", err);
-      return {
-        appliedEffects: clampedFallback,
-        narrativeOutcome: data.suggestedOutcome,
-        followUp: null,
-        newsHeadline: wireHeadline(),
-        source: "fallback" as const,
-      };
+    } catch {
+      applyDecisionImpact({ ...clampedFallback, headline: wireHeadline() });
+      return { appliedEffects: clampedFallback, narrativeOutcome: data.suggestedOutcome, followUp: null, newsHeadline: wireHeadline(), source: "fallback" as const };
     }
   });
 
@@ -331,28 +294,24 @@ export const generateScenarioIllustrations = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data }) => {
-    const apiKey = getGeminiApiKey();
+    const apiKey = getOpenAIKey();
     if (!apiKey) {
       return { imageDataUrls: [] as string[], error: "AI service not configured" };
     }
 
     const visual =
       data.imagePrompt?.trim() ||
-      `Crisis scene for a head-of-state simulation: ${data.title}. ${data.description}`;
+      `Editorial crisis illustration for: ${data.title}. ${data.description.slice(0, 300)}`;
 
-    const prompt = [
-      "Create a single editorial illustration, painterly or print-news style.",
-      "No readable text, no logos, no real-world politician or celebrity likenesses.",
-      "Subject and composition:",
-      visual.slice(0, 1200),
-    ].join(" ");
+    const prompt = `Cinematic editorial illustration, painterly news style. No text, no logos, no real politician likenesses. ${visual.slice(0, 900)}`;
 
-    const result = await geminiGenerateImage({ apiKey, prompt });
-    if (!result.ok) {
-      console.error(`[PresidentialSim] Image generation error ${result.status}: ${result.message}`);
-      return { imageDataUrls: [] as string[], error: result.message };
+    try {
+      const result = await openAIGenerateImage({ prompt });
+      if (!result.ok) return { imageDataUrls: [] as string[], error: result.message };
+      return { imageDataUrls: [result.url], error: null as string | null };
+    } catch {
+      return { imageDataUrls: [] as string[], error: "Image generation failed" };
     }
-    return { imageDataUrls: result.dataUrls, error: null as string | null };
   });
 
 export const getAdvisorSuggestion = createServerFn({ method: "POST" })
@@ -369,40 +328,36 @@ export const getAdvisorSuggestion = createServerFn({ method: "POST" })
     }
   )
   .handler(async ({ data }) => {
-    const apiKey = getGeminiApiKey();
+    const apiKey = getOpenAIKey();
+    const worldContext = getWorldStateSnapshot();
 
     if (!apiKey) {
       return {
-        advice: `As your chief advisor, I recommend a balanced approach considering your current stats. Your diplomacy is at ${data.stats.diplomacy}, economy at ${data.stats.economy}, security at ${data.stats.security}, and approval at ${data.stats.approval}. Focus on strengthening your weakest area while maintaining alliances. (AI service not configured — this is placeholder advice)`,
+        advice: `Your current stats: Diplomacy ${data.stats.diplomacy}, Economy ${data.stats.economy}, Security ${data.stats.security}, Approval ${data.stats.approval}. Focus on your weakest pillar.`,
         source: "mock" as const,
       };
     }
 
     try {
-      const result = await geminiGenerateFromMessages({
-        apiKey,
+      const result = await openAIChat({
+        temperature: 0.8,
         messages: [
           {
             role: "system",
-            content: `You are the player's chief strategic advisor in a presidential simulation. You have access to all classified intel and speak frankly.
+            content: `You are the player's chief strategic advisor in a presidential simulation. Speak frankly, like a seasoned political operative.
 
-Player's current stats: Diplomacy=${data.stats.diplomacy}/100, Economy=${data.stats.economy}/100, Security=${data.stats.security}/100, Approval=${data.stats.approval}/100.
+${worldContext}
+Player stats: Diplomacy=${data.stats.diplomacy}/100, Economy=${data.stats.economy}/100, Security=${data.stats.security}/100, Approval=${data.stats.approval}/100.
 ${data.currentScenario ? `Current crisis: ${data.currentScenario}` : ""}
 Recent decisions: ${data.decisionHistory.slice(-5).join("; ") || "None yet"}
 
-Provide strategic, contextual advice. Be direct and opinionated. Consider the political consequences. Keep response to 3-5 sentences max. Sound like a seasoned political operative, not a textbook.`,
+Be direct and opinionated. 3-5 sentences max.`,
           },
-          {
-            role: "user",
-            content: data.question,
-          },
+          { role: "user", content: data.question },
         ],
       });
 
-      if (!result.ok) {
-        return { advice: "I'm unable to provide advice at this moment. Please try again.", source: "error" as const };
-      }
-
+      if (!result.ok) return { advice: "Advisor unavailable. Try again.", source: "error" as const };
       return { advice: result.text || "No advice available.", source: "ai" as const };
     } catch {
       return { advice: "Advisor system temporarily unavailable.", source: "error" as const };
@@ -411,18 +366,12 @@ Provide strategic, contextual advice. Be direct and opinionated. Consider the po
 
 export const generateNewsHeadlines = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: {
-      stats: Record<string, number>;
-      recentDecisions: string[];
-      worldEvents: string[];
-    }) => {
+    (input: { stats: Record<string, number>; recentDecisions: string[]; worldEvents: string[] }) => {
       if (!input.stats) throw new Error("Stats required");
       return input;
     }
   )
   .handler(async ({ data }) => {
-    const apiKey = getGeminiApiKey();
-
     const mockHeadlines = [
       { headline: "Global Stability Index Falls to Three-Year Low", source: "Reuters", category: "global", time: "2h ago" },
       { headline: "UN Security Council Calls Emergency Session on Regional Tensions", source: "AP News", category: "diplomacy", time: "4h ago" },
@@ -430,72 +379,49 @@ export const generateNewsHeadlines = createServerFn({ method: "POST" })
       { headline: "Humanitarian Aid Organizations Scale Up Operations in Conflict Zones", source: "BBC", category: "humanitarian", time: "8h ago" },
     ];
 
-    if (!apiKey) {
-      return { headlines: mockHeadlines, source: "mock" as const };
-    }
+    const apiKey = getOpenAIKey();
+    const worldContext = getWorldStateSnapshot();
+    if (!apiKey) return { headlines: mockHeadlines, source: "mock" as const };
 
     try {
-      const result = await geminiGenerateFromMessages({
-        apiKey,
-        responseMimeType: "application/json",
+      const result = await openAIChat({
+        json: true,
+        temperature: 0.9,
         messages: [
           {
             role: "system",
-            content: `You are a global news wire generator for a geopolitical simulation. Based on the current game state, generate 4-6 realistic, evolving news headlines that reflect the world's reaction to the player's decisions.
+            content: `You are a global news wire generator. Generate realistic headlines reflecting the current world simulation state.
 
-Current game state:
-- Diplomacy: ${data.stats.diplomacy}/100
-- Economy: ${data.stats.economy}/100
-- Security: ${data.stats.security}/100
-- Approval: ${data.stats.approval}/100
-- Recent player decisions: ${data.recentDecisions.slice(-3).join("; ") || "None yet"}
-- World events: ${data.worldEvents.slice(-5).join("; ") || "None yet"}
+${worldContext}
+Player decisions (recent): ${data.recentDecisions.slice(-3).join("; ") || "None"}
 
-Respond with JSON:
-{
-  "headlines": [
-    {
-      "headline": "News headline (10-15 words)",
-      "source": "News agency name",
-      "category": "diplomacy|military|economy|humanitarian|domestic",
-      "time": "Xh ago"
-    }
-  ]
-}
+Respond ONLY with JSON:
+{ "headlines": [{ "headline": "...", "source": "Reuters/AP/BBC/AFP/Al Jazeera", "category": "diplomacy|military|economy|humanitarian|domestic", "time": "Xh ago" }] }
 
-Make headlines feel like real wire service reporting. Reference the player's decisions where applicable. Vary the time stamps from 1-24 hours ago.`,
+Generate 4-6 headlines. Vary timestamps 1-24h ago. Make them feel like real wire service reporting.`,
           },
-          {
-            role: "user",
-            content: "Generate current global news headlines based on the game state.",
-          },
+          { role: "user", content: "Generate current headlines." },
         ],
       });
 
       if (!result.ok) return { headlines: mockHeadlines, source: "mock" as const };
 
       let parsed: unknown;
-      try {
-        parsed = JSON.parse(stripJsonMarkdown(result.text));
-      } catch {
-        return { headlines: mockHeadlines, source: "mock" as const };
-      }
+      try { parsed = JSON.parse(stripJsonFences(result.text)); } catch { return { headlines: mockHeadlines, source: "mock" as const }; }
 
       const p = parsed as Record<string, unknown>;
       if (!Array.isArray(p.headlines)) return { headlines: mockHeadlines, source: "mock" as const };
 
-      const headlines = (p.headlines as unknown[])
-        .map((h) => {
-          if (!h || typeof h !== "object") return null;
-          const x = h as Record<string, unknown>;
-          return {
-            headline: typeof x.headline === "string" ? x.headline : "Breaking News",
-            source: typeof x.source === "string" ? x.source : "Reuters",
-            category: typeof x.category === "string" ? x.category : "global",
-            time: typeof x.time === "string" ? x.time : "1h ago",
-          };
-        })
-        .filter(Boolean) as typeof mockHeadlines;
+      const headlines = (p.headlines as unknown[]).map((h) => {
+        if (!h || typeof h !== "object") return null;
+        const x = h as Record<string, unknown>;
+        return {
+          headline: typeof x.headline === "string" ? x.headline : "Breaking News",
+          source: typeof x.source === "string" ? x.source : "Reuters",
+          category: typeof x.category === "string" ? x.category : "global",
+          time: typeof x.time === "string" ? x.time : "1h ago",
+        };
+      }).filter(Boolean) as typeof mockHeadlines;
 
       return { headlines: headlines.length > 0 ? headlines : mockHeadlines, source: "ai" as const };
     } catch {
