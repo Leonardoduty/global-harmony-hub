@@ -152,20 +152,10 @@ app.listen(PORT, "0.0.0.0", () => {
   const hasOpenAI = !!(aiKey && !aiKey.startsWith("sk-or-"));
 
   console.log(`\n[API ENGINE] Running on port ${PORT}`);
-
-  // ── API Key Status ────────────────────────────────────────────────────────
-  // To configure, set these environment variables (or add to a .env file):
-  //   OPENAI_API_KEY    — standard OpenAI key (sk-...) OR an OpenRouter key (sk-or-...)
-  //   OPENROUTER_API_KEY — dedicated OpenRouter key (optional if OPENAI_API_KEY is sk-or-)
-  // ─────────────────────────────────────────────────────────────────────────
   console.log(`[API ENGINE] OpenRouter: ${hasOpenRouter ? "configured ✓" : "no key — will skip"}`);
   console.log(`[API ENGINE] OpenAI:     ${hasOpenAI ? "configured ✓" : "no key — will skip"}`);
-
   if (!hasOpenRouter && !hasOpenAI) {
-    console.warn(`[API ENGINE] ⚠  No AI keys found — all AI calls will use fallback responses.`);
-    console.warn(`[API ENGINE] ⚠  Set OPENAI_API_KEY or OPENROUTER_API_KEY to enable live AI.`);
+    console.warn(`[API ENGINE] ⚠  No AI keys found — set OPENAI_API_KEY or OPENROUTER_API_KEY to enable live AI.`);
   }
-
-  console.log(`[API ENGINE] Dual-AI: OpenRouter (primary) → OpenAI (fallback)`);
   console.log(`[API ENGINE] Endpoints: POST /api/engine, GET /api/debug/logs, GET /api/health\n`);
 });

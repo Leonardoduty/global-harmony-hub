@@ -122,7 +122,6 @@ export async function callAI(messages, options = {}) {
     openai_skipped: false,
   };
 
-  console.log(`[AI] Attempting OpenRouter (${OPENROUTER_MODEL})...`);
   ai_flow.openrouter_attempted = true;
   const orResult = await tryOpenRouter(messages, options);
 
@@ -130,10 +129,8 @@ export async function callAI(messages, options = {}) {
     ai_flow.openrouter_attempted = false;
     ai_flow.openrouter_skipped = true;
     ai_flow.openrouter_error = orResult.error;
-    console.log(`[AI] OpenRouter skipped: ${orResult.error}`);
   } else if (orResult.ok) {
     ai_flow.openrouter_success = true;
-    console.log(`[AI] OpenRouter success`);
     return {
       ok: true,
       text: orResult.text,
@@ -144,20 +141,17 @@ export async function callAI(messages, options = {}) {
   } else {
     ai_flow.openrouter_success = false;
     ai_flow.openrouter_error = orResult.error;
-    console.warn(`[AI] OpenRouter failed: ${orResult.error} — falling back to OpenAI`);
+    console.warn(`[AI] OpenRouter failed: ${orResult.error} — trying OpenAI fallback`);
   }
 
-  console.log(`[AI] Attempting OpenAI (${OPENAI_MODEL})...`);
   ai_flow.openai_attempted = true;
   const oaResult = await tryOpenAI(messages, options);
 
   if (oaResult.skipped) {
     ai_flow.openai_skipped = true;
     ai_flow.openai_error = oaResult.error;
-    console.warn(`[AI] OpenAI skipped: ${oaResult.error}`);
   } else if (oaResult.ok) {
     ai_flow.openai_success = true;
-    console.log(`[AI] OpenAI fallback success`);
     return {
       ok: true,
       text: oaResult.text,
@@ -169,7 +163,7 @@ export async function callAI(messages, options = {}) {
   } else {
     ai_flow.openai_success = false;
     ai_flow.openai_error = oaResult.error;
-    console.error(`[AI] Both providers failed`);
+    console.error(`[AI] Both providers failed — OpenRouter: ${orResult.error ?? "skipped"}, OpenAI: ${oaResult.error ?? "skipped"}`);
   }
 
   return {

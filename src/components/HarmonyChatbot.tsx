@@ -87,9 +87,9 @@ export default function HarmonyChatbot() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-[360px] flex flex-col bg-background border border-border rounded-2xl shadow-2xl overflow-hidden">
+    <div className="fixed bottom-6 right-6 z-50 w-[360px] flex flex-col bg-background border border-border rounded-2xl shadow-2xl">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card rounded-t-2xl">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-lg">{currentAdvisor.icon}</span>
           <div className="min-w-0">
@@ -109,7 +109,7 @@ export default function HarmonyChatbot() {
               Switch <ChevronDown className="w-3 h-3" />
             </button>
             {showAdvisorMenu && (
-              <div className="absolute right-0 bottom-full mb-1 w-48 bg-popover border border-border rounded-lg shadow-xl z-10 overflow-hidden">
+              <div className="absolute right-0 bottom-full mb-1 w-48 bg-popover border border-border rounded-lg shadow-xl z-[200] overflow-hidden">
                 {ADVISORS.map((a) => (
                   <button
                     key={a.value}
@@ -130,7 +130,7 @@ export default function HarmonyChatbot() {
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3 min-h-[300px] max-h-[380px]">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-3 min-h-[300px] max-h-[380px]">
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
@@ -176,7 +176,7 @@ export default function HarmonyChatbot() {
       )}
 
       {/* Input */}
-      <div className="p-3 border-t border-border">
+      <div className="p-3 border-t border-border rounded-b-2xl bg-background">
         <div className="flex gap-2">
           <input
             value={input}
