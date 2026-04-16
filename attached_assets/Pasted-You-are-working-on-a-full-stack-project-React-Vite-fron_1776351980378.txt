@@ -1,0 +1,114 @@
+You are working on a full-stack project (React + Vite frontend, Node/Express backend).
+
+CURRENT SITUATION:
+- Some countries in the Global Situation Map have hardcoded data.
+- Their structure, fields, and format MUST remain unchanged.
+- Other countries currently show "No Data Available".
+
+---
+
+🎯 GOAL:
+
+For countries that do NOT exist in the hardcoded dataset:
+
+- Dynamically generate their data using the AI engine
+- The generated output MUST EXACTLY MATCH the structure, keys, and format of the existing hardcoded country objects
+
+---
+
+🚨 STRICT RULES:
+
+❌ Do NOT create a new format (no new JSON structure)
+❌ Do NOT rename fields
+❌ Do NOT add/remove fields
+❌ Do NOT change how existing countries are stored or displayed
+
+✔ ONLY replicate the SAME structure used by hardcoded countries
+✔ The AI output should look indistinguishable from hardcoded data
+
+---
+
+## 🧠 CRITICAL STEP (VERY IMPORTANT)
+
+Before generating anything:
+
+1. Find ONE existing hardcoded country object in the code
+2. Use it as the TEMPLATE
+3. The AI must FOLLOW that structure EXACTLY
+
+Example:
+If existing country has fields like:
+- name
+- stability
+- economy
+- conflict
+- summary
+
+Then EVERY generated country MUST return data in THAT SAME SHAPE
+
+---
+
+## ⚙️ BACKEND BEHAVIOR
+
+When request comes:
+
+IF country exists in hardcoded dataset:
+→ return it as-is
+
+ELSE:
+→ call AI
+→ generate country data USING SAME STRUCTURE AS TEMPLATE
+→ return it
+
+---
+
+## 🧠 AI GENERATION LOGIC
+
+The AI should:
+- Generate realistic geopolitical stats
+- Be consistent with global situation
+- Keep values believable (0–100 ranges, logical summaries)
+- Avoid extreme/random values
+
+---
+
+## 🖥️ FRONTEND BEHAVIOR
+
+NO UI changes required.
+
+Just ensure:
+
+- If data exists → render normally
+- If not → fetch from API and render SAME WAY
+
+---
+
+## ⚡ IMPORTANT
+
+The frontend should NOT know whether data is:
+- hardcoded OR
+- AI-generated
+
+Everything should look identical.
+
+---
+
+## 🧪 DEBUGGING
+
+Add logs:
+
+console.log("🌍 Using hardcoded data:", countryName);
+console.log("🤖 Using AI-generated data:", countryName);
+
+If structure mismatch:
+console.error("❌ Structure mismatch for country:", countryName);
+
+---
+
+## ✅ FINAL RESULT
+
+- All countries display data
+- No "No Data Available"
+- Hardcoded countries untouched
+- AI-generated countries look EXACTLY the same
+- Seamless experience

@@ -237,40 +237,62 @@ export async function handleWorldState({ action = "get", patch = null }) {
 
 export async function handleCountryInfo({ countryName, gameContext = "" }) {
   const worldContext = getWorldStateSnapshot();
-  const contextBlock = gameContext ? `\n\nPlayer game context: ${gameContext}` : "";
+  const contextBlock = gameContext ? `\n\nGame context: ${gameContext}` : "";
 
   const builtMessages = [
     {
       role: "system",
-      content: `You are a geopolitical intelligence analyst for the Global Governance Simulator. Provide a detailed JSON brief on the given country.
+      content: `You are a geopolitical intelligence analyst. Generate a realistic country intelligence brief that EXACTLY matches this JSON structure — no extra fields, no renamed fields:
 
-${worldContext}${contextBlock}
-
-Respond ONLY with this JSON:
 {
-  "name": "country name",
-  "summary": "2-3 sentence overview",
-  "stabilityScore": number(0-100),
-  "conflicts": ["conflict1", "conflict2"],
-  "peaceInitiatives": ["initiative1"],
-  "history": "2-3 sentences of relevant recent history",
-  "currentSituation": "one sentence: current political/security situation",
-  "playerRelationship": "one sentence: how this country relates to the player",
-  "leader": { "name": "...", "title": "...", "personality": "3-4 words", "politicalStance": "brief stance" },
-  "relationships": { "allied": ["Country1"], "hostile": ["Country2"], "neutral": ["Country3"] }
-}`,
+  "name": "country name (string)",
+  "capital": "capital city (string)",
+  "population": "e.g. '50 million' or '1.4 billion' (string)",
+  "region": "e.g. 'West Africa' or 'Southeast Asia' (string)",
+  "riskLevel": number between 1 and 10 (1=stable, 10=extreme conflict),
+  "stabilityScore": number between 0 and 100 (0=failed state, 100=perfectly stable),
+  "leader": { "name": "current leader name", "title": "official title" },
+  "summary": "2-3 sentence geopolitical overview",
+  "currentSituation": "one concise sentence describing the current political/security situation",
+  "timeline": [
+    { "year": "year as string", "event": "brief description of key historical event" }
+  ],
+  "conflicts": [
+    { "name": "conflict name", "status": "active|frozen|resolved", "since": "year as string" }
+  ],
+  "allies": ["Country1", "Country2"],
+  "rivals": ["Country3", "Country4"]
+}
+
+Rules:
+- riskLevel and stabilityScore must be inversely correlated (high risk = low stability)
+- timeline: 4-7 entries covering key historical moments
+- conflicts: 0-4 entries (empty array if none)
+- allies and rivals: 2-6 entries each
+- All values must be realistic and factual
+- Respond ONLY with the JSON object above, no markdown, no explanation
+
+${worldContext}${contextBlock}`,
     },
-    { role: "user", content: `Provide geopolitical analysis for: ${countryName}` },
+    { role: "user", content: `Generate intelligence brief for: ${countryName}` },
   ];
 
-  const result = await callAI(builtMessages, { json: true, temperature: 0.6 });
+  const result = await callAI(builtMessages, { json: true, temperature: 0.5 });
 
   const fallback = {
-    name: countryName, summary: "Intelligence data unavailable for this region.",
-    stabilityScore: 50, conflicts: [], peaceInitiatives: [], history: "Data unavailable.",
-    currentSituation: "Situation unclear.", playerRelationship: "Neutral stance.",
-    leader: { name: "Unknown", title: "Head of State", personality: "Unknown", politicalStance: "Undetermined" },
-    relationships: { allied: [], hostile: [], neutral: [] },
+    name: countryName,
+    capital: "Unknown",
+    population: "Unknown",
+    region: "Unknown",
+    riskLevel: 5,
+    stabilityScore: 50,
+    leader: { name: "Unknown", title: "Head of State" },
+    summary: "Intelligence data unavailable for this territory.",
+    currentSituation: "Current situation unclear.",
+    timeline: [{ year: "N/A", event: "No historical data available." }],
+    conflicts: [],
+    allies: [],
+    rivals: [],
   };
 
   if (!result.ok) {
@@ -279,7 +301,36 @@ Respond ONLY with this JSON:
 
   try {
     const parsed = JSON.parse(stripJsonFences(result.text));
-    return { info: parsed, source: "ai", ai_used: true, model: result.model, provider: result.provider, ai_flow: result.ai_flow, error: null };
+
+    // Validate and normalize the parsed result to match CountryRecord structure
+    const info = {
+      name: typeof parsed.name === "string" ? parsed.name : countryName,
+      capital: typeof parsed.capital === "string" ? parsed.capital : "Unknown",
+      population: typeof parsed.population === "string" ? parsed.population : "Unknown",
+      region: typeof parsed.region === "string" ? parsed.region : "Unknown",
+      riskLevel: Math.min(10, Math.max(1, Math.round(Number(parsed.riskLevel) || 5))),
+      stabilityScore: Math.min(100, Math.max(0, Math.round(Number(parsed.stabilityScore) || 50))),
+      leader: {
+        name: typeof parsed.leader?.name === "string" ? parsed.leader.name : "Unknown",
+        title: typeof parsed.leader?.title === "string" ? parsed.leader.title : "Head of State",
+      },
+      summary: typeof parsed.summary === "string" ? parsed.summary : fallback.summary,
+      currentSituation: typeof parsed.currentSituation === "string" ? parsed.currentSituation : fallback.currentSituation,
+      timeline: Array.isArray(parsed.timeline)
+        ? parsed.timeline.filter(e => e && typeof e.year === "string" && typeof e.event === "string")
+        : fallback.timeline,
+      conflicts: Array.isArray(parsed.conflicts)
+        ? parsed.conflicts.filter(c => c && typeof c.name === "string").map(c => ({
+            name: c.name,
+            status: ["active", "frozen", "resolved"].includes(c.status) ? c.status : "active",
+            since: typeof c.since === "string" ? c.since : "Unknown",
+          }))
+        : [],
+      allies: Array.isArray(parsed.allies) ? parsed.allies.filter(a => typeof a === "string") : [],
+      rivals: Array.isArray(parsed.rivals) ? parsed.rivals.filter(r => typeof r === "string") : [],
+    };
+
+    return { info, source: "ai", ai_used: true, model: result.model, provider: result.provider, ai_flow: result.ai_flow, error: null };
   } catch {
     return { info: fallback, source: "fallback", ai_used: false, model: null, provider: result.provider, ai_flow: result.ai_flow, error: "JSON parse failed" };
   }

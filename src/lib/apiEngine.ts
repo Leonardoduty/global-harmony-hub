@@ -160,15 +160,18 @@ export const enginePatchWorldState = (patch: Partial<WorldStateData["state"]>) =
 export type CountryInfoData = {
   info: {
     name: string;
-    summary: string;
+    capital: string;
+    population: string;
+    region: string;
+    riskLevel: number;
     stabilityScore: number;
-    conflicts: string[];
-    peaceInitiatives: string[];
-    history: string;
+    leader: { name: string; title: string };
+    summary: string;
     currentSituation: string;
-    playerRelationship: string;
-    leader: { name: string; title: string; personality: string; politicalStance: string };
-    relationships: { allied: string[]; hostile: string[]; neutral: string[] };
+    timeline: { year: string; event: string }[];
+    conflicts: { name: string; status: string; since: string }[];
+    allies: string[];
+    rivals: string[];
   };
   source: "ai" | "fallback";
   ai_used: boolean;

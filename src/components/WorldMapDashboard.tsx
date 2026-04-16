@@ -4,9 +4,10 @@ import { feature } from "topojson-client";
 import type { Topology, Objects } from "topojson-client";
 import {
   X, Clock, Users, MapPin, AlertTriangle, ChevronRight,
-  Shield, Radio, Globe, TrendingUp,
+  Shield, Radio, Globe, TrendingUp, Loader2,
 } from "lucide-react";
 import DoomsdayClock from "@/components/DoomsdayClock";
+import { engineGetCountryInfo } from "@/lib/apiEngine";
 import {
   COUNTRY_DATABASE, getCountryData, computeGlobalRiskSeconds, computeRiskForCountry,
   RISK_LABELS, RISK_COLORS, type CountryRecord,
@@ -390,6 +391,8 @@ export default function WorldMapDashboard() {
   const [hoveredName, setHoveredName] = useState<string | null>(null);
   const [doomsdaySecs, setDoomsdaySecs] = useState(computeGlobalRiskSeconds);
   const [alertLevel, setAlertLevel] = useState(0.5);
+  const [aiCache, setAiCache] = useState<Record<string, CountryRecord>>({});
+  const [loadingCountry, setLoadingCountry] = useState<string | null>(null);
   const { features, loaded } = useWorldGeo();
   const svgRef = useRef<SVGSVGElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -401,25 +404,68 @@ export default function WorldMapDashboard() {
 
   const handleSelect = useCallback((name: string) => {
     setSelectedName(name);
-    const record = getCountryData(name);
-    if (record) {
-      const risk = computeRiskForCountry(record);
+    const hardcoded = getCountryData(name);
+    if (hardcoded) {
+      console.log("🌍 Using hardcoded data:", name);
+      const risk = computeRiskForCountry(hardcoded);
+      const adjustedSecs = Math.round(computeGlobalRiskSeconds() * (1 - risk * 0.35));
+      setDoomsdaySecs(Math.max(15, adjustedSecs));
+      setAlertLevel(risk);
+    } else if (aiCache[name]) {
+      console.log("🤖 Using AI-generated data (cached):", name);
+      const risk = aiCache[name].riskLevel / 10;
       const adjustedSecs = Math.round(computeGlobalRiskSeconds() * (1 - risk * 0.35));
       setDoomsdaySecs(Math.max(15, adjustedSecs));
       setAlertLevel(risk);
     } else {
       setDoomsdaySecs(computeGlobalRiskSeconds());
       setAlertLevel(0.4);
+      setLoadingCountry(name);
+      engineGetCountryInfo(name).then((res) => {
+        if (res.ok && res.data?.info) {
+          const info = res.data.info;
+          const validInfo: CountryRecord = {
+            name: info.name,
+            capital: info.capital,
+            population: info.population,
+            region: info.region,
+            riskLevel: Math.min(10, Math.max(1, Math.round(info.riskLevel))) as CountryRecord["riskLevel"],
+            stabilityScore: info.stabilityScore,
+            leader: info.leader,
+            summary: info.summary,
+            currentSituation: info.currentSituation,
+            timeline: info.timeline,
+            conflicts: info.conflicts as CountryRecord["conflicts"],
+            allies: info.allies,
+            rivals: info.rivals,
+          };
+          console.log("🤖 Using AI-generated data:", name);
+          setAiCache((prev) => ({ ...prev, [name]: validInfo }));
+          const risk = validInfo.riskLevel / 10;
+          const adjustedSecs = Math.round(computeGlobalRiskSeconds() * (1 - risk * 0.35));
+          setDoomsdaySecs(Math.max(15, adjustedSecs));
+          setAlertLevel(risk);
+        } else {
+          console.error("❌ Structure mismatch for country:", name);
+        }
+        setLoadingCountry(null);
+      }).catch(() => {
+        console.error("❌ Structure mismatch for country:", name);
+        setLoadingCountry(null);
+      });
     }
-  }, []);
+  }, [aiCache]);
 
   const handleClose = useCallback(() => {
     setSelectedName(null);
+    setLoadingCountry(null);
     setDoomsdaySecs(computeGlobalRiskSeconds());
     setAlertLevel(0.5);
   }, []);
 
-  const selectedRecord = selectedName ? (getCountryData(selectedName) ?? null) : null;
+  const selectedRecord = selectedName
+    ? (getCountryData(selectedName) ?? aiCache[selectedName] ?? null)
+    : null;
 
   return (
     <div
@@ -555,11 +601,21 @@ export default function WorldMapDashboard() {
 
         {!selectedRecord && selectedName && (
           <div className="absolute top-0 right-0 h-full w-full md:w-[380px] flex flex-col items-center justify-center z-20"
-            style={{ background: "rgba(8,8,18,0.95)", borderLeft: "1px solid rgba(255,255,255,0.08)" }}>
+            style={{ background: "rgba(8,8,18,0.95)", borderLeft: "1px solid rgba(96,165,250,0.15)" }}>
             <div className="text-center px-8">
-              <Globe className="w-10 h-10 text-white/20 mx-auto mb-3" />
-              <p className="font-mono text-sm text-white/50 font-bold">{selectedName}</p>
-              <p className="font-mono text-xs text-white/25 mt-1">No detailed data available for this territory.</p>
+              {loadingCountry === selectedName ? (
+                <>
+                  <Loader2 className="w-8 h-8 text-blue-400/60 mx-auto mb-3 animate-spin" />
+                  <p className="font-mono text-sm text-white/60 font-bold">{selectedName}</p>
+                  <p className="font-mono text-xs text-blue-400/50 mt-1">Generating AI intelligence brief...</p>
+                </>
+              ) : (
+                <>
+                  <Globe className="w-10 h-10 text-white/20 mx-auto mb-3" />
+                  <p className="font-mono text-sm text-white/50 font-bold">{selectedName}</p>
+                  <p className="font-mono text-xs text-white/25 mt-1">No data could be retrieved.</p>
+                </>
+              )}
               <button
                 onClick={handleClose}
                 className="mt-4 font-mono text-xs px-3 py-1.5 rounded hover:bg-white/10 transition-colors text-white/40"
@@ -578,11 +634,11 @@ export default function WorldMapDashboard() {
         <div className="flex items-center gap-2">
           <Clock className="w-3 h-3 text-white/20" />
           <span className="font-mono text-[9px] text-white/20 uppercase tracking-wider">
-            All data is hardcoded for offline operation · No external APIs
+            {Object.keys(COUNTRY_DATABASE).length} nations indexed · AI briefings for unknown territories
           </span>
         </div>
         <span className="font-mono text-[9px] text-white/15">
-          {Object.keys(COUNTRY_DATABASE).length} nations indexed
+          {Object.keys(aiCache).length > 0 ? `${Object.keys(aiCache).length} AI-generated` : "Live intel"}
         </span>
       </div>
     </div>
