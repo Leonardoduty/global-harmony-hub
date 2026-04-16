@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Map, Shield, Zap, Users, AlertTriangle, ArrowRight, Clock, Radio, Globe, Activity, Paintbrush, Code2, ChevronDown, Info } from "lucide-react";
+import { Map, Shield, Zap, Users, AlertTriangle, ArrowRight, Clock, Radio, Globe, Activity, Paintbrush, Code2, ChevronDown, Info, Instagram } from "lucide-react";
 import { engineGetWorldState } from "@/lib/apiEngine";
 import { navigate } from "@/lib/router";
 
@@ -235,8 +235,8 @@ function ConflictTicker({ conflicts }: { conflicts: string[] }) {
 }
 
 const CREATORS = [
-  { name: "Lavanya N. Gajbhiye", role: "Web Developer", icon: Code2, color: "#60a5fa", glow: "rgba(96,165,250,0.28)" },
-  { name: "Hasan Rauf", role: "Web Designer", icon: Paintbrush, color: "#c084fc", glow: "rgba(192,132,252,0.28)" },
+  { name: "Lavanya N. Gajbhiye", role: "Web Developer", icon: Code2, color: "#60a5fa", glow: "rgba(96,165,250,0.28)", instagram: "https://www.instagram.com/lavanya_gajbhiye1/" },
+  { name: "Hasan Rauf", role: "Web Designer", icon: Paintbrush, color: "#c084fc", glow: "rgba(192,132,252,0.28)", instagram: "https://www.instagram.com/hasan._.rauf?igsh=bDBkdXdrM3NxbGs0&utm_source=qr" },
 ];
 
 function AboutCard() {
@@ -265,7 +265,7 @@ function AboutCard() {
       </div>
 
       <div className="space-y-2 mb-4">
-        {CREATORS.map(({ name, role, icon: Icon, color }, i) => (
+        {CREATORS.map(({ name, role, icon: Icon, color, instagram }, i) => (
           <motion.div
             key={name}
             className="flex items-center gap-2 rounded-lg px-3 py-2"
@@ -276,7 +276,19 @@ function AboutCard() {
           >
             <Icon className="w-3.5 h-3.5 shrink-0" style={{ color }} />
             <span className="font-mono text-[10px] text-white/85 font-semibold">{name}</span>
-            <span className="ml-auto font-mono text-[9px] uppercase tracking-wider" style={{ color }}>{role}</span>
+            <span className="font-mono text-[9px] uppercase tracking-wider" style={{ color }}>{role}</span>
+            <a
+              href={instagram}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              className="ml-auto flex items-center gap-1 rounded-lg px-2 py-1 transition-all"
+              style={{ background: `${color}15`, border: `1px solid ${color}30` }}
+              onMouseEnter={e => (e.currentTarget.style.background = `${color}30`)}
+              onMouseLeave={e => (e.currentTarget.style.background = `${color}15`)}
+            >
+              <Instagram className="w-3 h-3" style={{ color }} />
+            </a>
           </motion.div>
         ))}
       </div>
