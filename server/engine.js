@@ -8,11 +8,46 @@ import {
 } from "./worldState.js";
 
 const FALLBACK_HEADLINES = [
-  { headline: "UN Security Council Convenes Emergency Session on Regional Tensions", source: "Reuters", category: "diplomacy", credibility: 85, time: "2h ago" },
-  { headline: "Global Markets Steady Amid Geopolitical Uncertainty", source: "AP", category: "economy", credibility: 82, time: "4h ago" },
-  { headline: "Ceasefire Negotiations Resume Between Warring Factions", source: "BBC", category: "conflict", credibility: 80, time: "6h ago" },
-  { headline: "NATO Members Reaffirm Collective Defense Commitments", source: "AFP", category: "security", credibility: 88, time: "8h ago" },
-  { headline: "Aid Convoy Reaches Conflict Zone After Days of Delay", source: "Al Jazeera", category: "humanitarian", credibility: 79, time: "12h ago" },
+  {
+    headline: "UN Security Council Convenes Emergency Session on Regional Tensions",
+    region: "Global", source: "Reuters", category: "diplomacy", time: "2h ago",
+    summary: "An emergency session was called following a sudden escalation of hostilities in a disputed border region. Representatives from 15 nations are in attendance. No resolution has been passed yet.",
+    credibility_score: 85, fake_risk: 10, status: "LIKELY TRUE",
+    impact_level: "HIGH", urgency: "HIGH",
+    key_signals: ["Multiple wire services reporting", "Official UN agenda posted", "Ambassador statements confirmed"],
+  },
+  {
+    headline: "Global Markets Steady Amid Geopolitical Uncertainty",
+    region: "Global", source: "AP", category: "economy", time: "4h ago",
+    summary: "Despite elevated conflict risk indicators, major indices held their ground through the trading session. Analysts caution that this calm may be temporary pending diplomatic outcomes.",
+    credibility_score: 82, fake_risk: 8, status: "CONFIRMED",
+    impact_level: "MEDIUM", urgency: "LOW",
+    key_signals: ["Live market data corroborates", "Multiple financial analysts cited"],
+  },
+  {
+    headline: "Ceasefire Negotiations Resume Between Warring Factions",
+    region: "Middle East", source: "BBC", category: "diplomacy", time: "6h ago",
+    summary: "Delegations from both sides have returned to the table following a three-day breakdown. Mediators from a neutral third party are facilitating. Outcome remains uncertain.",
+    credibility_score: 74, fake_risk: 18, status: "UNCERTAIN",
+    impact_level: "HIGH", urgency: "MEDIUM",
+    key_signals: ["Single source reporting", "No official joint statement yet", "Social media activity elevated"],
+  },
+  {
+    headline: "NATO Members Reaffirm Collective Defense Commitments",
+    region: "Europe", source: "AFP", category: "security", time: "8h ago",
+    summary: "Following a joint ministerial meeting, all member states reaffirmed Article 5 obligations. The statement comes amid heightened pressure on the alliance's eastern flank.",
+    credibility_score: 92, fake_risk: 4, status: "CONFIRMED",
+    impact_level: "HIGH", urgency: "MEDIUM",
+    key_signals: ["Official NATO press release", "Multiple state media confirmed", "Video of signing ceremony available"],
+  },
+  {
+    headline: "Unverified Reports: Militia Forces Seize Strategic Crossing",
+    region: "Sub-Saharan Africa", source: "OSINT", category: "military", time: "1h ago",
+    summary: "Social media accounts are circulating footage purportedly showing armed groups controlling a key border crossing. No government or international body has confirmed the claim.",
+    credibility_score: 34, fake_risk: 62, status: "DISPUTED",
+    impact_level: "HIGH", urgency: "CRITICAL",
+    key_signals: ["No official confirmation", "Single social media origin", "Video metadata unverified", "Conflicting local reports"],
+  },
 ];
 
 const ADVISOR_PROMPTS = {
@@ -127,17 +162,48 @@ export async function handleGenerateHeadlines({ recentDecisions = [] }) {
   const builtMessages = [
     {
       role: "system",
-      content: `You are a global news wire generator for the Global Governance Simulator.
+      content: `You are the Situation Room Live Intelligence System inside a geopolitical simulation.
+
+Your job is to continuously generate viral global news events in real time and present them as an intelligence feed for a dashboard.
 
 ${worldContext}
 Recent player decisions: ${recentDecisions.slice(-3).join("; ") || "None"}
 
-Respond ONLY with JSON:
-{ "headlines": [{ "headline": "...", "source": "Reuters|AP|BBC|AFP|Al Jazeera", "category": "diplomacy|military|economy|humanitarian|security", "credibility": number(75-100), "time": "Xh ago" }] }
+For each news event:
+- Generate realistic global headlines (politics, war, economy, disasters, diplomacy)
+- Include both VERIFIED and UNCONFIRMED viral claims
+- Do NOT assume everything is true or fake
+- Evaluate credibility like an intelligence agency
+- Detect misinformation patterns when applicable
+- Mix real-world plausibility with uncertainty
+- Some events may be viral misinformation
+- Some may be partially true but exaggerated
+- Major geopolitical events should NEVER be instantly marked 100% true unless strongly confirmed
+- Think like: Reuters + UN Situation Room + OSINT analyst
 
-Generate 5 headlines. Vary timestamps 1-24h ago.`,
+Respond ONLY with this JSON (no markdown):
+{
+  "headlines": [
+    {
+      "headline": "...",
+      "region": "e.g. Eastern Europe | Middle East | Global | Asia-Pacific | Sub-Saharan Africa | etc.",
+      "category": "diplomacy|military|economy|humanitarian|security|politics|disaster",
+      "source": "Reuters|AP|BBC|AFP|Al Jazeera|OSINT|Unverified",
+      "time": "Xh ago",
+      "summary": "2-3 sentence neutral explanation of the event",
+      "credibility_score": number(0-100),
+      "fake_risk": number(0-100),
+      "status": "CONFIRMED|LIKELY TRUE|UNCERTAIN|DISPUTED|LIKELY FAKE",
+      "impact_level": "LOW|MEDIUM|HIGH|GLOBAL CRISIS",
+      "urgency": "LOW|MEDIUM|HIGH|CRITICAL",
+      "key_signals": ["signal1", "signal2", "signal3"]
+    }
+  ]
+}
+
+Generate exactly 5 intelligence items. Vary timestamps 1-24h ago. Include at least one DISPUTED or UNCERTAIN item. Vary regions and categories.`,
     },
-    { role: "user", content: "Generate current headlines." },
+    { role: "user", content: "Generate current intelligence feed." },
   ];
 
   const result = await callAI(builtMessages, { json: true, temperature: 0.9 });

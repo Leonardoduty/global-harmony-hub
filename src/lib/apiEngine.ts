@@ -36,7 +36,8 @@ export type DebugLog = {
   worldStateChange: unknown;
 };
 
-const API_BASE = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL ?? "https://global-harmony-hub.onrender.com";
+const _env = (import.meta as { env?: { VITE_API_URL?: string; DEV?: boolean } }).env ?? {};
+const API_BASE: string = _env.VITE_API_URL || (_env.DEV ? "" : "https://global-harmony-hub.onrender.com");
 
 async function callEngine<T = unknown>(
   type: EngineType,
@@ -111,10 +112,17 @@ export const engineVerifyNews = (headline: string, content?: string) =>
 
 export type HeadlineItem = {
   headline: string;
+  region: string;
   source: string;
   category: string;
-  credibility: number;
   time: string;
+  summary: string;
+  credibility_score: number;
+  fake_risk: number;
+  status: "CONFIRMED" | "LIKELY TRUE" | "UNCERTAIN" | "DISPUTED" | "LIKELY FAKE";
+  impact_level: "LOW" | "MEDIUM" | "HIGH" | "GLOBAL CRISIS";
+  urgency: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  key_signals: string[];
 };
 
 export type GenerateHeadlinesData = {
