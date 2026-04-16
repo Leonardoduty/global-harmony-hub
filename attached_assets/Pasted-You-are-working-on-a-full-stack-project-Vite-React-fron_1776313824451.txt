@@ -1,0 +1,114 @@
+You are working on a full-stack project (Vite + React frontend, Node/Express backend).
+
+CURRENT STATUS:
+- Backend API (/api/engine) is fully working and tested via curl.
+- API response format is:
+
+{
+  ok: true,
+  type: "chat",
+  data: {
+    reply: "AI response text"
+  }
+}
+
+PROBLEM:
+Frontend is not displaying AI responses ("No response received").
+
+---
+
+TASK:
+Fix ONLY the frontend API integration so chat responses display correctly AND add debugging so we can trace issues clearly.
+
+---
+
+STRICT CONSTRAINTS:
+❌ Do NOT modify UI layout or styling
+❌ Do NOT change chat design or components
+❌ Do NOT change backend code
+❌ Do NOT refactor existing logic
+❌ Do NOT redesign the app
+✔ Only fix API request/response handling + minimal debugging additions
+
+---
+
+WHAT YOU MUST DO:
+
+### 1. Locate API call
+Find the frontend function calling:
+POST /api/engine
+
+Ensure request format stays EXACT:
+{
+  type: "chat",
+  prompt: userInput
+}
+
+---
+
+### 2. FIX RESPONSE PARSING ONLY
+Correct response path is:
+
+response.data.reply
+
+NOT:
+- response.reply
+- response.data
+- response.message
+
+---
+
+### 3. ADD DEBUGGING (IMPORTANT)
+
+Add detailed logs at each step:
+
+console.log("🚀 API REQUEST SENT:", requestPayload);
+
+console.log("📡 RAW RESPONSE:", response);
+
+console.log("📦 PARSED JSON:", data);
+
+console.log("💬 EXTRACTED REPLY:", data?.data?.reply);
+
+Also log errors clearly:
+
+console.error("❌ API ERROR:", error);
+console.error("❌ INVALID RESPONSE STRUCTURE:", data);
+
+---
+
+### 4. HANDLE FAILURES SAFELY
+
+If:
+- data.ok === false
+- OR data.data.reply is missing
+
+Then:
+- log full response
+- show fallback message in console (NOT UI redesign)
+
+---
+
+### 5. STATE UPDATE FIX
+
+Ensure assistant message is appended ONLY after successful response:
+
+setMessages(prev => [
+  ...prev,
+  { role: "assistant", content: reply }
+]);
+
+---
+
+EXPECTED RESULT:
+- User message appears in chat
+- API request is sent successfully
+- AI reply is correctly displayed
+- Full debug logs show request → response → parsed output
+- Errors are clearly visible in console if anything fails
+
+---
+
+IMPORTANT:
+Backend is already confirmed working.
+This task is ONLY frontend integration + debugging visibility fix.

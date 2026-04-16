@@ -63,10 +63,19 @@ export default function HarmonyChatbot() {
         newMessages.map((m) => ({ role: m.role, content: m.content })),
         advisor
       );
-      const reply = res.ok ? (res.data?.reply ?? "No response received.") : "Sorry, I couldn't process that. Please try again.";
-      setMessages((p) => [...p, { role: "assistant", content: reply }]);
-    } catch {
-      setMessages((p) => [...p, { role: "assistant", content: "Sorry, I couldn't process that. Please try again." }]);
+
+      if (!res.ok || !res.data?.reply) {
+        console.error("❌ INVALID RESPONSE STRUCTURE:", res);
+      }
+
+      const reply = res.ok && res.data?.reply
+        ? res.data.reply
+        : "Sorry, I couldn't process that. Please try again.";
+
+      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+    } catch (error) {
+      console.error("❌ API ERROR:", error);
+      setMessages((prev) => [...prev, { role: "assistant", content: "Sorry, I couldn't process that. Please try again." }]);
     } finally {
       setLoading(false);
     }

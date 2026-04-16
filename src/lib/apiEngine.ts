@@ -40,7 +40,10 @@ async function callEngine<T = unknown>(
   type: EngineType,
   payload: Record<string, unknown> = {}
 ): Promise<EngineResponse<T>> {
-  const body = JSON.stringify({ type, ...payload });
+  const requestPayload = { type, ...payload };
+  const body = JSON.stringify(requestPayload);
+
+  console.log("🚀 API REQUEST SENT:", requestPayload);
 
   try {
     const res = await fetch("/api/engine", {
@@ -48,10 +51,23 @@ async function callEngine<T = unknown>(
       headers: { "Content-Type": "application/json" },
       body,
     });
-    const json = await res.json();
-    return json as EngineResponse<T>;
+    const data = await res.json();
+
+    console.log("📡 RAW RESPONSE:", res.status, res.statusText);
+    console.log("📦 PARSED JSON:", data);
+
+    if (type === "chat") {
+      console.log("💬 EXTRACTED REPLY:", data?.data?.reply);
+    }
+
+    if (!data.ok) {
+      console.error("❌ INVALID RESPONSE STRUCTURE:", data);
+    }
+
+    return data as EngineResponse<T>;
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : "Network error";
+    console.error("❌ API ERROR:", err);
     return {
       ok: false,
       type,
