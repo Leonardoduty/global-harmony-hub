@@ -36,7 +36,7 @@ export type DebugLog = {
   worldStateChange: unknown;
 };
 
-const API_BASE = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL ?? "";
+const API_BASE = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL ?? "https://global-harmony-hub.onrender.com";
 
 async function callEngine<T = unknown>(
   type: EngineType,
@@ -229,7 +229,7 @@ export const engineGetDebug = () =>
 
 export async function fetchDebugLogs(): Promise<DebugLog[]> {
   try {
-    const res = await fetch("/api/debug/logs");
+    const res = await fetch(`${API_BASE}/api/debug/logs`);
     const json = await res.json();
     return json.logs ?? [];
   } catch {
@@ -238,5 +238,5 @@ export async function fetchDebugLogs(): Promise<DebugLog[]> {
 }
 
 export async function clearDebugLogs(): Promise<void> {
-  await fetch("/api/debug/logs", { method: "DELETE" });
+  await fetch(`${API_BASE}/api/debug/logs`, { method: "DELETE" });
 }

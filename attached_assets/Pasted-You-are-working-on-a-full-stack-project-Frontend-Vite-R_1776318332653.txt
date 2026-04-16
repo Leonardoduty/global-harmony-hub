@@ -1,0 +1,144 @@
+You are working on a full-stack project:
+- Frontend: Vite + React (deployed on Vercel)
+- Backend: Node/Express (already deployed and working on Render)
+
+BACKEND STATUS:
+- Fully functional at: https://global-harmony-hub.onrender.com
+- Endpoint: POST /api/engine
+- Response format:
+
+{
+  ok: true,
+  type: "chat",
+  data: {
+    reply: "AI response text"
+  }
+}
+
+---
+
+🎯 PROBLEM:
+Frontend is not reliably displaying AI responses from backend OR API integration is inconsistent in production (Vercel).
+
+---
+
+🚨 STRICT RULES (NON-NEGOTIABLE):
+❌ DO NOT modify UI design or styling
+❌ DO NOT change React components structure
+❌ DO NOT refactor business logic
+❌ DO NOT touch backend code
+❌ DO NOT redesign the application
+❌ DO NOT remove features
+
+✔ ONLY allowed changes:
+- frontend API integration
+- API base URL handling
+- response parsing fixes
+- environment variable handling for Vite
+- debugging logs (console only)
+- safe error handling for API calls
+
+---
+
+## TASK 1 — FIX API BASE CONFIGURATION
+
+Ensure all frontend API calls use:
+
+const API_BASE =
+  import.meta.env.VITE_API_URL ||
+  "https://global-harmony-hub.onrender.com";
+
+All requests MUST go to:
+POST `${API_BASE}/api/engine`
+
+---
+
+## TASK 2 — ENSURE CORRECT REQUEST FORMAT
+
+Request body MUST remain exactly:
+
+{
+  type: "chat",
+  prompt: userInput
+}
+
+Do NOT modify backend contract.
+
+---
+
+## TASK 3 — FIX RESPONSE PARSING (CRITICAL)
+
+Correct response path is:
+
+data.data.reply
+
+NOT:
+- response.reply
+- response.data
+- response.message
+
+Ensure UI only renders:
+reply = data.data.reply
+
+---
+
+## TASK 4 — ADD DEBUG LOGGING (NO UI CHANGES)
+
+Add ONLY console logs:
+
+console.log("🚀 API REQUEST SENT:", requestPayload);
+console.log("📡 RAW RESPONSE:", response);
+console.log("📦 PARSED JSON:", data);
+console.log("💬 EXTRACTED REPLY:", data?.data?.reply);
+
+Add error logs:
+
+console.error("❌ API ERROR:", error);
+console.error("❌ INVALID RESPONSE STRUCTURE:", data);
+
+---
+
+## TASK 5 — SAFE FAILURE HANDLING
+
+If:
+- response.ok is false
+- OR data.data.reply is missing
+
+Then:
+✔ DO NOT crash UI
+✔ DO NOT modify UI layout
+✔ ONLY log full response in console
+✔ Gracefully skip message update
+
+---
+
+## TASK 6 — STATE UPDATE SAFETY
+
+Only append assistant message if valid reply exists:
+
+setMessages(prev => [
+  ...prev,
+  { role: "assistant", content: reply }
+]);
+
+---
+
+## TASK 7 — VERCEL ENV SUPPORT
+
+Ensure frontend supports:
+
+VITE_API_URL=https://global-harmony-hub.onrender.com
+
+If missing → fallback to Render URL automatically.
+
+---
+
+🎯 FINAL EXPECTED RESULT:
+- Frontend works on Vercel without backend changes
+- API calls correctly reach Render backend
+- AI replies render properly in chat UI
+- Full console debugging visible (request → response → parsed output)
+- No UI or design changes whatsoever
+- No backend modifications required
+
+ONLY FIX FRONTEND API INTEGRATION AND DEBUGGING.
