@@ -1,0 +1,224 @@
+You are working on a full-stack geopolitical simulation (React + Vite frontend, Node/Express backend).
+
+The AI system MUST work ONLY for the Global Situation Map dynamic country data.
+
+---
+
+🎯 CORE OBJECTIVE:
+
+Fix and enforce a reliable AI pipeline so that:
+
+- Hardcoded countries → remain unchanged
+- Missing countries → ALWAYS get AI-generated data
+- AI must NEVER silently fail
+- AI must ALWAYS return usable data for the map
+
+---
+
+## 🔥 CURRENT PROBLEM
+
+- AI is not being triggered correctly OR failing silently
+- Map falls back to "No Data Available"
+- This should NEVER happen
+
+---
+
+# 🧠 STEP 1 — FORCE AI EXECUTION (BACKEND)
+
+Inside engine.js:
+
+Ensure there is a dedicated handler:
+
+type: "country_dynamic"
+
+---
+
+### CRITICAL:
+
+AI MUST be called EVERY TIME for non-hardcoded countries.
+
+NO early returns  
+NO skipping  
+NO undefined payloads  
+
+---
+
+## 🧠 STEP 2 — INPUT NORMALIZATION
+
+Before calling AI:
+
+Ensure:
+
+- countryName ALWAYS exists
+- Trim and sanitize input
+- Example:
+
+const country = payload?.countryName?.trim();
+
+If missing:
+→ return fallback immediately (DO NOT crash)
+
+---
+
+## 🧠 STEP 3 — MESSAGE BUILDING (IMPORTANT)
+
+Build messages EXACTLY like this:
+
+- system: defines role
+- user: contains clear instruction
+
+Example:
+
+System:
+"You are a geopolitical intelligence system generating structured country data for a simulation."
+
+User:
+"Generate complete data for: India. Match the structure of existing countries in the system."
+
+---
+
+## 🧠 STEP 4 — MATCH EXISTING STRUCTURE
+
+VERY IMPORTANT:
+
+Before sending AI request:
+
+- Extract ONE existing hardcoded country object
+- Use it as TEMPLATE
+
+AI MUST:
+- follow SAME keys
+- SAME naming
+- SAME nesting
+- SAME value types
+
+---
+
+## 🧠 STEP 5 — AI CALL RELIABILITY
+
+Use:
+
+const result = await callAI(messages, { temperature: 0.6 });
+
+---
+
+### HANDLE FAILURE STRICTLY:
+
+If:
+- result.ok === false
+- OR result.text is empty
+
+Then:
+
+❌ DO NOT return null  
+❌ DO NOT break UI  
+
+✔ Return SAFE FALLBACK OBJECT matching structure
+
+---
+
+## 🧠 STEP 6 — PARSE + VALIDATE OUTPUT
+
+After AI returns:
+
+- Ensure output is usable
+- Ensure required fields exist
+
+If invalid:
+→ log error
+→ return fallback
+
+---
+
+## 🧠 STEP 7 — FALLBACK SYSTEM (MANDATORY)
+
+Fallback MUST:
+
+- match exact country structure
+- contain neutral realistic values
+- NEVER say "No Data Available"
+
+Example:
+- stability: 50
+- economy: 50
+- conflict: 30
+- summary: "Data currently limited. Situation appears stable."
+
+---
+
+## 🧠 STEP 8 — DEBUGGING (VERY IMPORTANT)
+
+Add logs:
+
+console.log("🌍 Country requested:", countryName);
+console.log("🤖 AI CALLED for:", countryName);
+console.log("📡 AI RAW RESPONSE:", result);
+console.log("📦 FINAL COUNTRY DATA:", finalData);
+
+On failure:
+
+console.error("❌ AI FAILED:", result.error);
+
+---
+
+## 🧠 STEP 9 — FRONTEND BEHAVIOR
+
+When country clicked:
+
+IF exists in hardcoded:
+→ use it
+
+ELSE:
+→ call API
+
+DO NOT:
+- skip call
+- rely on empty state
+- show "No Data Available"
+
+---
+
+## 🧠 STEP 10 — CACHING (IMPORTANT)
+
+After first fetch:
+
+- store country in memory/state
+- reuse it
+- avoid repeated AI calls
+
+---
+
+## 🧠 STEP 11 — GUARANTEE RULE
+
+At NO point should the UI show:
+
+❌ "No Data Available"
+
+Instead ALWAYS show:
+✔ hardcoded OR
+✔ AI-generated OR
+✔ fallback
+
+---
+
+# ✅ FINAL RESULT
+
+- AI always triggers for missing countries
+- AI never silently fails
+- Map is fully populated
+- Structure is identical across all countries
+- System feels seamless and intelligent
+
+---
+
+# 🔥 MINDSET
+
+This is NOT optional AI.
+
+This is:
+
+🧠 "AI-powered global intelligence layer"
+
+Failure is NOT allowed.
+Fallback is REQUIRED.
+Consistency is CRITICAL.

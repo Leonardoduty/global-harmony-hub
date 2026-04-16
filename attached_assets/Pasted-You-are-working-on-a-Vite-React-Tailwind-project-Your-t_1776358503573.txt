@@ -1,0 +1,90 @@
+You are working on a Vite + React + Tailwind project.
+
+Your task is to ADD an "About Us" section to the HOME PAGE.
+
+---
+
+🚨 STRICT RULES:
+
+❌ Do NOT modify existing sections  
+❌ Do NOT change layout structure  
+❌ Do NOT break responsiveness  
+❌ Do NOT redesign the page  
+
+✔ ONLY add a new section  
+✔ Match existing design style  
+✔ Keep it clean, modern, and professional  
+
+---
+
+## 📍 PLACEMENT
+
+- Add the "About Us" section BELOW the hero section
+- Maintain consistent spacing (margin/padding similar to other sections)
+
+---
+
+## 🧱 SECTION STRUCTURE
+
+Create a clean card-style or centered section with:
+
+### 🔹 Title:
+"About the Creators"
+
+---
+
+### 🔹 Main Paragraph:
+
+Hasan Rauf and Lavanya N. Gajbhiye are talented Class 9 students at Bal Bhawan School, Bhopal, who together form a dedicated web development and design team. Combining their technical skills and creative expertise, they have collaborated on high-impact digital projects, including the development of comprehensive web platforms. Their shared commitment to quality is reflected in the 60+ hours of intensive work invested into their latest website. By balancing academic responsibilities with advanced technical execution, they demonstrate strong proficiency in UI/UX design and backend development, positioning themselves as emerging innovators in the Bhopal tech community.
+
+---
+
+## 👥 ROLE TABS / HIGHLIGHT CARDS
+
+Below the paragraph, add two small highlight elements (cards, badges, or tabs):
+
+1. Hasan Rauf  
+   → Web Designer 🎨  
+
+2. Lavanya N. Gajbhiye  
+   → Web Developer 💻  
+
+---
+
+## 🎨 DESIGN GUIDELINES
+
+- Use existing theme colors (no new palette)
+- Add subtle hover effect on role cards:
+  - slight scale
+  - soft glow
+- Rounded corners (2xl)
+- Soft shadow
+
+Optional:
+- Add icons (paintbrush for designer, code for developer)
+
+---
+
+## ✨ ANIMATIONS (SUBTLE)
+
+- Fade-in on scroll
+- Slight upward motion on load
+- Keep it smooth and professional (no flashy effects)
+
+---
+
+## 📱 RESPONSIVENESS
+
+- Stack vertically on mobile
+- Center align everything
+- Ensure spacing is clean on small screens
+
+---
+
+## ✅ FINAL RESULT
+
+- Clean "About Us" section on homepage
+- Professional and polished look
+- Clear roles displayed
+- Matches existing UI perfectly
+- No disruption to existing features
