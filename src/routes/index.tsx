@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Map, Shield, Zap, Users, AlertTriangle, ArrowRight, Clock, Radio, Globe, Activity, Paintbrush, Code2 } from "lucide-react";
+import { Map, Shield, Zap, Users, AlertTriangle, ArrowRight, Clock, Radio, Globe, Activity, Paintbrush, Code2, ChevronDown, Info } from "lucide-react";
 import { engineGetWorldState } from "@/lib/apiEngine";
 import { navigate } from "@/lib/router";
 
@@ -234,6 +234,77 @@ function ConflictTicker({ conflicts }: { conflicts: string[] }) {
   );
 }
 
+const CREATORS = [
+  { name: "Lavanya N. Gajbhiye", role: "Web Developer", icon: Code2, color: "#60a5fa", glow: "rgba(96,165,250,0.28)" },
+  { name: "Hasan Rauf", role: "Web Designer", icon: Paintbrush, color: "#c084fc", glow: "rgba(192,132,252,0.28)" },
+];
+
+function AboutCard() {
+  const [open, setOpen] = useState(false);
+  return (
+    <motion.div
+      custom={5}
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      className="rounded-xl p-5 cursor-pointer group"
+      style={{ background: "rgba(8,8,20,0.85)", border: "1px solid rgba(96,165,250,0.15)", backdropFilter: "blur(12px)" }}
+      whileHover={{ y: -4, scale: 1.03, boxShadow: "0 0 40px rgba(96,165,250,0.2), 0 12px 48px rgba(0,0,0,0.6)" }}
+      onClick={() => setOpen(o => !o)}
+    >
+      <div className="flex items-center gap-2 mb-4">
+        <Info className="w-4 h-4 text-blue-400" />
+        <span className="font-mono text-xs font-bold text-white/70 uppercase tracking-widest">About the Creators</span>
+        <motion.div
+          className="ml-auto"
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+        >
+          <ChevronDown className="w-4 h-4 text-blue-400/60" />
+        </motion.div>
+      </div>
+
+      <div className="space-y-2 mb-4">
+        {CREATORS.map(({ name, role, icon: Icon, color }, i) => (
+          <motion.div
+            key={name}
+            className="flex items-center gap-2 rounded-lg px-3 py-2"
+            style={{ background: `${color}0d`, border: `1px solid ${color}20` }}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 + i * 0.08 }}
+          >
+            <Icon className="w-3.5 h-3.5 shrink-0" style={{ color }} />
+            <span className="font-mono text-[10px] text-white/85 font-semibold">{name}</span>
+            <span className="ml-auto font-mono text-[9px] uppercase tracking-wider" style={{ color }}>{role}</span>
+          </motion.div>
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            key="bio"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.35, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <p className="font-mono text-[10px] text-white/60 leading-relaxed mb-4 pt-1 border-t border-white/8">
+              Lavanya N. Gajbhiye and Hasan Rauf are talented Class 9 students at Bal Bhawan School, Bhopal — a dedicated web dev and design team with 60+ hours invested in this platform. Emerging innovators in the Bhopal tech community.
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="flex items-center gap-1 text-xs font-mono text-blue-400 group-hover:gap-2 transition-all">
+        {open ? "Show Less" : "Meet the Team"} <ArrowRight className="w-3 h-3" />
+      </div>
+    </motion.div>
+  );
+}
+
 export default function Index() {
   const ws = useLiveWorldState();
   const peaceIndex = ws?.global_peace_index ?? 72;
@@ -311,88 +382,6 @@ export default function Index() {
               </motion.div>
             )}
           </div>
-        </section>
-
-        {/* About the Creators */}
-        <section className="max-w-4xl mx-auto px-4 py-12">
-          <motion.div
-            initial={{ opacity: 0, y: 32 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-            className="rounded-2xl p-8 md:p-10 text-center"
-            style={{
-              background: "rgba(8,8,20,0.85)",
-              border: "1px solid rgba(96,165,250,0.15)",
-              backdropFilter: "blur(12px)",
-              boxShadow: "0 8px 48px rgba(0,0,0,0.5)",
-            }}
-          >
-            <motion.p
-              className="font-mono text-[10px] tracking-[0.4em] text-blue-400/60 uppercase mb-2"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.15 }}
-            >
-              The Team
-            </motion.p>
-            <motion.h2
-              className="font-mono text-2xl md:text-3xl font-black text-white uppercase tracking-widest mb-6"
-              style={{ textShadow: "0 0 30px rgba(96,165,250,0.3)" }}
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-            >
-              About the Creators
-            </motion.h2>
-
-            <motion.p
-              className="font-mono text-[13px] md:text-sm text-white/55 leading-relaxed max-w-2xl mx-auto mb-8"
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3, duration: 0.6 }}
-            >
-              Hasan Rauf and Lavanya N. Gajbhiye are talented Class 9 students at Bal Bhawan School, Bhopal, who together form a dedicated web development and design team. Combining their technical skills and creative expertise, they have collaborated on high-impact digital projects, including the development of comprehensive web platforms. Their shared commitment to quality is reflected in the 60+ hours of intensive work invested into their latest website. By balancing academic responsibilities with advanced technical execution, they demonstrate strong proficiency in UI/UX design and backend development, positioning themselves as emerging innovators in the Bhopal tech community.
-            </motion.p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              {[
-                { name: "Hasan Rauf", role: "Web Designer", icon: Paintbrush, color: "#c084fc", glow: "rgba(192,132,252,0.25)" },
-                { name: "Lavanya N. Gajbhiye", role: "Web Developer", icon: Code2, color: "#60a5fa", glow: "rgba(96,165,250,0.25)" },
-              ].map(({ name, role, icon: Icon, color, glow }, i) => (
-                <motion.div
-                  key={name}
-                  className="rounded-2xl px-6 py-4 flex flex-col items-center gap-2 cursor-default w-full sm:w-auto min-w-[180px]"
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: `1px solid ${color}30`,
-                  }}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.45 + i * 0.12, duration: 0.5, ease: "easeOut" }}
-                  whileHover={{
-                    scale: 1.05,
-                    y: -3,
-                    boxShadow: `0 0 28px ${glow}, 0 8px 32px rgba(0,0,0,0.5)`,
-                    borderColor: `${color}70`,
-                  }}
-                >
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center mb-1"
-                    style={{ background: `${color}15`, border: `1px solid ${color}30` }}
-                  >
-                    <Icon className="w-5 h-5" style={{ color }} />
-                  </div>
-                  <span className="font-mono text-sm font-bold text-white/85">{name}</span>
-                  <span className="font-mono text-[11px] tracking-wider uppercase" style={{ color }}>{role}</span>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
         </section>
 
         {/* Dashboard Grid */}
@@ -486,7 +475,7 @@ export default function Index() {
                       animate={{ scale: [1, 1.4, 1] }}
                       transition={{ duration: 2, repeat: Infinity, delay: i * 0.4 }}
                     />
-                    <span className="font-mono text-[10px] text-white/60">{f}</span>
+                    <span className="font-mono text-[10px] text-white/85">{f}</span>
                   </motion.div>
                 ))}
               </div>
@@ -515,9 +504,9 @@ export default function Index() {
                 {["War escalation", "Trade deals", "Cyber attacks", "Climate crisis"].map((s, i) => (
                   <motion.div
                     key={s}
-                    className="font-mono text-[10px] text-white/40 flex items-center gap-2"
+                    className="font-mono text-[10px] text-white/85 flex items-center gap-2"
                     initial={{ opacity: 0 }}
-                    animate={{ opacity: [0.4, 0.8, 0.4] }}
+                    animate={{ opacity: [0.75, 1, 0.75] }}
                     transition={{ duration: 3, repeat: Infinity, delay: i * 0.7 }}
                   >
                     <span className="w-1 h-1 rounded-full bg-yellow-400/60 shrink-0" />
@@ -529,6 +518,9 @@ export default function Index() {
                 Start Simulation <ArrowRight className="w-3 h-3" />
               </div>
             </GlowCard>
+
+            {/* About the Creators */}
+            <AboutCard />
 
             {/* Active Conflicts */}
             <GlowCard
