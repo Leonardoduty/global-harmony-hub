@@ -91,10 +91,14 @@ export default function HarmonyChatbot() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-50 bg-primary text-primary-foreground rounded-full p-4 shadow-xl hover:bg-primary/90 transition-all duration-200 hover:scale-110"
+        className="fixed bottom-6 right-6 z-50 bg-primary text-primary-foreground rounded-full p-4 shadow-xl hover:bg-primary/90 transition-all duration-300 hover:scale-110"
         title="Open AI Advisor"
+        style={{ boxShadow: "0 0 24px rgba(96,165,250,0.3), 0 8px 32px rgba(0,0,0,0.5)" }}
       >
-        <MessageCircle className="w-6 h-6" />
+        <MessageCircle
+          className="w-6 h-6"
+          style={{ animation: "chatbot-bob 2s ease-in-out infinite" }}
+        />
       </button>
     );
   }

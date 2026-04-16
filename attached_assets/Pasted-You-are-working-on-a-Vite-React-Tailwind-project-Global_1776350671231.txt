@@ -1,0 +1,130 @@
+You are working on a Vite + React + Tailwind project (Global Harmony Hub).
+
+Your task is to improve UI/UX polish, animations, and layout WITHOUT breaking any existing logic or functionality.
+
+---
+
+🚨 STRICT RULES:
+❌ Do NOT modify backend
+❌ Do NOT change API logic
+❌ Do NOT alter component structure significantly
+❌ Do NOT redesign layout completely
+❌ Do NOT remove features
+
+✔ ONLY enhance visuals, animations, positioning, and UX polish
+
+---
+
+## 🎯 TASK 1 — CARD HOVER EFFECT (MAKE IT "POP")
+
+Enhance all major cards (especially in Situation Room):
+
+On hover:
+- Slight scale up: scale(1.03–1.05)
+- Add soft glow (box-shadow with theme color)
+- Smooth transition (0.3s ease)
+- Add subtle upward movement (translateY(-4px))
+
+Optional:
+- Add gradient border glow animation
+- Slight tilt effect (very subtle)
+
+---
+
+## 🎯 TASK 2 — REMOVE JPEG TERRAIN MAP
+
+- Locate background image (terrain/map JPEG)
+- Remove or replace with:
+  ✔ gradient background OR
+  ✔ animated particles OR
+  ✔ subtle grid/cyberpunk background
+
+DO NOT leave blank — maintain aesthetic
+
+---
+
+## 🎯 TASK 3 — FIX DOOMSDAY CLOCK OVERLAP
+
+Problem:
+Clock UI is covering other elements
+
+Fix:
+- Move Doomsday Clock container to TOP section
+- Add proper spacing (margin-top / padding)
+- Ensure:
+  ✔ no overlap
+  ✔ fully visible
+  ✔ responsive
+
+Optional:
+- Add slight glow/pulse animation to clock
+
+---
+
+## 🎯 TASK 4 — CHATBOT ICON MICRO-ANIMATION
+
+Enhance chatbot icon:
+
+- Add subtle floating animation:
+  transform: translateY(0 → -5px → 0)
+- Duration: ~2s
+- Infinite loop
+- Ease-in-out
+
+Keep it VERY subtle (not distracting)
+
+---
+
+## 🎯 TASK 5 — PEACE EMOJI FLOATING SYSTEM
+
+Add floating emojis system:
+
+Behavior:
+- Emojis rise from bottom → top
+- Max 2 emojis at a time
+- Slow movement
+- Random horizontal positions
+- Fade out at top
+
+Emoji examples:
+🌍 ✌️ 🕊️ 🌿 💙
+
+Implementation:
+- Use absolute positioned container
+- Use keyframe animation:
+  translateY(100vh → -10vh)
+- Random delays for natural feel
+
+IMPORTANT:
+✔ Keep performance light
+✔ Do NOT spam too many elements
+
+---
+
+## 🎯 TASK 6 — SMOOTH TRANSITIONS
+
+Globally ensure:
+- transition-all duration-300 ease-in-out
+- No abrupt jumps
+
+---
+
+## 🎯 FINAL EXPECTATION
+
+After implementation:
+
+✔ Cards feel interactive and premium  
+✔ UI feels alive but not chaotic  
+✔ No overlapping elements  
+✔ Subtle motion adds depth  
+✔ Site feels like a real “global command center”  
+
+---
+
+⚠️ DO NOT:
+- break functionality
+- change API calls
+- alter data flow
+- redesign layout structure
+
+ONLY enhance visual polish and UX.

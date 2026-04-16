@@ -167,6 +167,8 @@ export default function DoomsdayClock({ secondsToMidnight, alertLevel }: Props) 
         borderColor: `${color}55`,
         boxShadow: `0 0 20px ${color}33`,
         minWidth: 148,
+        animation: "clock-pulse-glow 2.5s ease-in-out infinite",
+        color,
       }}
     >
       <div className="flex items-center gap-1.5 w-full justify-between">

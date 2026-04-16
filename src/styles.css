@@ -122,6 +122,23 @@
   }
 }
 
+@keyframes float-emoji {
+  0%   { transform: translateY(100vh); opacity: 0; }
+  8%   { opacity: 1; }
+  88%  { opacity: 0.7; }
+  100% { transform: translateY(-12vh); opacity: 0; }
+}
+
+@keyframes chatbot-bob {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-5px); }
+}
+
+@keyframes clock-pulse-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px currentColor); }
+  50%       { filter: drop-shadow(0 0 12px currentColor); }
+}
+
 @layer components {
   .gp-nav-link {
     @apply font-mono text-xs font-semibold tracking-widest uppercase transition-colors px-3 py-1.5;

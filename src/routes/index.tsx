@@ -70,14 +70,14 @@ function LiveMapPreview({ conflicts }: { conflicts: string[] }) {
 
   return (
     <div className="relative w-full rounded-xl overflow-hidden border border-white/8" style={{ aspectRatio: "2/1", background: "#05050f" }}>
-      <img
-        src="/world-terrain.png"
-        alt="World map"
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{ opacity: 0.45, mixBlendMode: "luminosity" }}
-        draggable={false}
-      />
-      <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, rgba(180,10,10,0.06) 0%, rgba(5,5,15,0.5) 100%)" }} />
+      <div className="absolute inset-0" style={{
+        backgroundImage: `
+          linear-gradient(rgba(96,165,250,0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(96,165,250,0.05) 1px, transparent 1px)
+        `,
+        backgroundSize: "40px 40px",
+      }} />
+      <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, rgba(96,165,250,0.06) 0%, rgba(5,5,15,0.7) 100%)" }} />
 
       {baseHotspots.map((h, i) => {
         const isActive = conflicts.some(c => c.toLowerCase().includes(h.label.toLowerCase()));
@@ -186,10 +186,10 @@ function GlowCard({ children, className = "", style = {}, delay = 0, to }: {
       variants={cardVariants}
       initial="hidden"
       animate="visible"
-      whileHover={{ y: -4, boxShadow: "0 0 32px rgba(96,165,250,0.18), 0 8px 40px rgba(0,0,0,0.5)" }}
+      whileHover={{ y: -4, scale: 1.03, boxShadow: "0 0 40px rgba(96,165,250,0.28), 0 12px 48px rgba(0,0,0,0.6)" }}
       transition={{ type: "spring", stiffness: 300, damping: 24 }}
       className={className}
-      style={style}
+      style={{ ...style, transition: "border-color 0.3s ease" }}
     >
       <a
         href={to}
@@ -248,8 +248,15 @@ export default function Index() {
       <div className="relative z-10">
         {/* Hero */}
         <section className="relative h-[46vh] min-h-[360px] flex items-center justify-center overflow-hidden">
-          <img src="/world-terrain.png" alt="" className="absolute inset-0 w-full h-full object-cover" style={{ opacity: 0.18 }} />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(5,5,15,0.3) 0%, rgba(5,5,15,0.85) 100%)" }} />
+          <div className="absolute inset-0" style={{
+            backgroundImage: `
+              linear-gradient(rgba(96,165,250,0.04) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(96,165,250,0.04) 1px, transparent 1px)
+            `,
+            backgroundSize: "60px 60px",
+          }} />
+          <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(96,165,250,0.06) 0%, transparent 70%)" }} />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(5,5,15,0.2) 0%, rgba(5,5,15,0.85) 100%)" }} />
 
           <div className="relative z-10 text-center px-4">
             <motion.div

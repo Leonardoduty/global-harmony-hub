@@ -85,7 +85,8 @@ function IntelligenceFeed() {
       style={{ background: "rgba(8,8,20,0.9)", border: "1px solid rgba(96,165,250,0.15)", backdropFilter: "blur(12px)" }}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.15 }}
+      whileHover={{ y: -3, boxShadow: "0 0 36px rgba(96,165,250,0.2), 0 12px 48px rgba(0,0,0,0.6)" }}
+      transition={{ delay: 0.15, type: "spring", stiffness: 280, damping: 24 }}
     >
       <div className="flex items-center gap-2 px-5 py-4 border-b" style={{ borderColor: "rgba(96,165,250,0.1)" }}>
         <Rss className="w-4 h-4 text-blue-400" />
@@ -246,9 +247,11 @@ export default function SituationRoomPage() {
 
         <motion.div
           className="rounded-xl p-5"
-          style={{ background: "rgba(8,8,20,0.9)", border: `1px solid ${statusColor}33`, backdropFilter: "blur(12px)" }}
+          style={{ background: "rgba(8,8,20,0.9)", border: `1px solid ${statusColor}33`, backdropFilter: "blur(12px)", transition: "border-color 0.3s ease" }}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
+          whileHover={{ y: -4, scale: 1.02, boxShadow: `0 0 40px ${statusColor}28, 0 12px 48px rgba(0,0,0,0.6)` }}
+          transition={{ type: "spring", stiffness: 280, damping: 24 }}
         >
           <div className="flex items-center gap-3 mb-4">
             <motion.div

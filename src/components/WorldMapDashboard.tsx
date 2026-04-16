@@ -428,14 +428,15 @@ export default function WorldMapDashboard() {
       style={{ background: "#05050f", border: "1px solid rgba(255,255,255,0.07)", fontFamily: "var(--font-mono, monospace)" }}
     >
       <div
-        className="flex items-center justify-between px-4 py-2.5 shrink-0"
+        className="flex items-center justify-between px-4 py-2 shrink-0 gap-3"
         style={{ background: "rgba(5,5,18,0.95)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}
       >
-        <div className="flex items-center gap-2.5">
-          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-          <span className="font-mono text-xs font-bold text-white/80 tracking-widest uppercase">Global Pulse — Live Monitor</span>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+          <span className="font-mono text-xs font-bold text-white/80 tracking-widest uppercase truncate">Global Pulse — Live Monitor</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 shrink-0">
+          <DoomsdayClock secondsToMidnight={doomsdaySecs} alertLevel={alertLevel} />
           <button
             onClick={() => setShowTerrain((v) => !v)}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-md font-mono text-[10px] uppercase tracking-wider transition-colors"
@@ -544,10 +545,6 @@ export default function WorldMapDashboard() {
         />
 
         <AlertOverlay level={alertLevel} />
-
-        <div className="absolute top-3 right-3 z-20">
-          <DoomsdayClock secondsToMidnight={doomsdaySecs} alertLevel={alertLevel} />
-        </div>
 
         <MapLegend />
 
