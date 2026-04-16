@@ -4,7 +4,7 @@ import { feature } from "topojson-client";
 import type { Topology, Objects } from "topojson-client";
 import {
   X, Clock, Users, MapPin, AlertTriangle, ChevronRight,
-  Shield, Radio, Globe, Layers, TrendingUp,
+  Shield, Radio, Globe, TrendingUp,
 } from "lucide-react";
 import DoomsdayClock from "@/components/DoomsdayClock";
 import {
@@ -388,7 +388,6 @@ function StatItem({ icon, label, value, color }: { icon: React.ReactNode; label:
 export default function WorldMapDashboard() {
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [hoveredName, setHoveredName] = useState<string | null>(null);
-  const [showTerrain, setShowTerrain] = useState(true);
   const [doomsdaySecs, setDoomsdaySecs] = useState(computeGlobalRiskSeconds);
   const [alertLevel, setAlertLevel] = useState(0.5);
   const { features, loaded } = useWorldGeo();
@@ -437,33 +436,20 @@ export default function WorldMapDashboard() {
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <DoomsdayClock secondsToMidnight={doomsdaySecs} alertLevel={alertLevel} />
-          <button
-            onClick={() => setShowTerrain((v) => !v)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md font-mono text-[10px] uppercase tracking-wider transition-colors"
-            style={{
-              background: showTerrain ? "rgba(96,165,250,0.15)" : "rgba(255,255,255,0.05)",
-              color: showTerrain ? "#60a5fa" : "rgba(255,255,255,0.35)",
-              border: `1px solid ${showTerrain ? "rgba(96,165,250,0.3)" : "rgba(255,255,255,0.1)"}`,
-            }}
-          >
-            <Layers className="w-3 h-3" />
-            Terrain
-          </button>
         </div>
       </div>
 
       <StatsBar selectedRecord={selectedRecord} />
 
       <div className="relative" style={{ aspectRatio: "2/1", background: "#05050f" }}>
-        {showTerrain && (
-          <img
-            src="/world-terrain.png"
-            alt="World terrain"
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ opacity: 0.45, mixBlendMode: "luminosity" }}
-            draggable={false}
-          />
-        )}
+        <div className="absolute inset-0" style={{
+          backgroundImage: `
+            linear-gradient(rgba(96,165,250,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(96,165,250,0.04) 1px, transparent 1px)
+          `,
+          backgroundSize: "48px 48px",
+        }} />
+        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 50% 50%, rgba(30,60,120,0.12) 0%, transparent 70%)" }} />
 
         {!loaded && (
           <div className="absolute inset-0 flex items-center justify-center z-10">
@@ -478,7 +464,7 @@ export default function WorldMapDashboard() {
           ref={svgRef}
           viewBox={`0 0 ${MAP_W} ${MAP_H}`}
           className="absolute inset-0 w-full h-full"
-          style={{ background: showTerrain ? "transparent" : "oklch(0.15 0.03 250)" }}
+          style={{ background: "transparent" }}
         >
           <defs>
             <filter id="country-glow">

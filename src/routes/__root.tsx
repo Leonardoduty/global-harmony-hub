@@ -20,7 +20,7 @@ function FloatingEmojis() {
   useEffect(() => {
     const spawn = () => {
       setEmojis(prev => {
-        if (prev.length >= 2) return prev;
+        if (prev.length >= 5) return prev;
         const id = ++counterRef.current;
         const newEmoji: FloatingEmoji = {
           id,
@@ -33,7 +33,7 @@ function FloatingEmojis() {
       });
     };
 
-    const id = setInterval(spawn, 6000);
+    const id = setInterval(spawn, 3000);
     spawn();
     return () => clearInterval(id);
   }, []);
