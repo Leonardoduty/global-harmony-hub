@@ -21,8 +21,7 @@ const ADVISOR_PROMPTS = {
   "Military Advisor": "You are a retired Joint Chiefs-level Military Advisor with expertise in defense strategy, deterrence theory, and conflict escalation dynamics. Keep responses concise (2-4 sentences).",
   "General": "You are the Global Governance AI — a diplomatic intelligence assistant specializing in global conflicts, geopolitics, and international relations. Provide factual, balanced analysis. Keep responses concise (2-4 sentences).",
 };
-console.log("TYPE RECEIVED:", type);
-console.log("HANDLER KEYS:", Object.keys(HANDLERS));
+
 export async function handleChat(payload) {
   const messages = payload?.messages || [
     {
@@ -46,9 +45,6 @@ export async function handleChat(payload) {
       content: m.content,
     })),
   ];
-
-  // keep your existing AI call logic below unchanged{Important not to touch}
-}
 
   const result = await callAI(builtMessages, { temperature: 0.75 });
 
@@ -75,6 +71,7 @@ export async function handleChat(payload) {
     ai_flow: result.ai_flow,
     error: null,
   };
+}
 
 
 export async function handleVerifyNews({ headline, content }) {
