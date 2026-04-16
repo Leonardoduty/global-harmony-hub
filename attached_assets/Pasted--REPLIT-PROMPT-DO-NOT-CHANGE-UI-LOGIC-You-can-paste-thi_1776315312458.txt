@@ -1,0 +1,60 @@
+✅ REPLIT PROMPT (DO NOT CHANGE UI / LOGIC)
+You can paste this directly:
+You are working on a full-stack project (Vite + React frontend, Node/Express backend).
+CURRENT STATUS
+Backend /api/engine works on Render (verified via curl)
+Chat endpoint returns valid JSON: { ok: true, type: "chat", data: { reply: "..." } }
+MAIN ISSUE
+Frontend + local dev shows inconsistent behavior:
+sometimes "AI failed / fallback"
+sometimes repeated API calls
+sometimes missing responses in UI
+BUT: Backend is confirmed working → DO NOT modify business logic.
+STRICT RULES (ABSOLUTE)
+❌ Do NOT change UI or styling ❌ Do NOT redesign components ❌ Do NOT change backend logic or AI logic ❌ Do NOT refactor architecture ❌ Do NOT modify world-state system ✔ ONLY fix:
+API integration stability
+request/response handling
+environment safety
+debugging instrumentation
+TASKS
+1. FIX ENVIRONMENT HANDLING (CRITICAL)
+In dev mode:
+Ensure backend server NEVER runs without checking: OPENAI_API_KEY OR OPENROUTER_API_KEY
+Add safe logging:
+console.log("🔐 ENV STATUS:", { openai: !!process.env.OPENAI_API_KEY, openrouter: !!process.env.OPENROUTER_API_KEY });
+BUT DO NOT expose full keys in logs.
+2. STOP REPEATED API CALL LOOP (IMPORTANT)
+Frontend is spamming:
+world_state requests
+chat requests repeatedly
+Fix by ensuring:
+chat request is only fired ONCE per user input
+add simple request lock:
+let isRequestPending = false;
+Before API call: if (isRequestPending) return; isRequestPending = true;
+After response/failure: isRequestPending = false;
+3. FIX RESPONSE HANDLING SAFELY
+Ensure frontend ALWAYS reads:
+response.ok === true response.data.reply (ONLY valid path)
+Add safe fallback:
+const reply = data?.data?.reply ?? "No response received (debug mode)";
+Log everything:
+console.log("🚀 REQUEST:", payload); console.log("📡 RESPONSE:", response); console.log("💬 REPLY:", reply);
+4. ADD DEBUG MODE (NO UI CHANGES)
+Add optional debug logs ONLY:
+request payload
+response status
+parsed JSON
+extracted reply
+error stack trace if failed
+Do NOT render debug UI.
+5. FIX LOCAL VS PRODUCTION CONFUSION
+Ensure:
+local dev uses http://localhost:3001⁠�
+production uses https://global-harmony-hub.onrender.com⁠�
+If needed, centralize API base URL:
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001⁠�";
+6. GUARANTEE ENGINE RELIABILITY
+If AI fails: return safe fallback:
+{ reply: "System temporarily unavailable. Try again.", confidence: 0, ai_used: false }
+BUT DO NOT change backend logic — only frontend safety.

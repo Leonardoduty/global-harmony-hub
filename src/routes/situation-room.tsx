@@ -19,7 +19,10 @@ function useLiveWorldState() {
 
   useEffect(() => {
     let alive = true;
+    let pending = false;
     async function load() {
+      if (pending) return;
+      pending = true;
       try {
         const res = await engineGetWorldState();
         if (alive && res.ok && res.data?.state) {
@@ -27,9 +30,10 @@ function useLiveWorldState() {
         }
       } catch {}
       if (alive) setLoading(false);
+      pending = false;
     }
     load();
-    const id = setInterval(load, 10000);
+    const id = setInterval(load, 30000);
     return () => { alive = false; clearInterval(id); };
   }, []);
 

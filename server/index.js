@@ -159,6 +159,7 @@ app.get("/", (req, res) => {
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log("🔥 ABOUT TO START SERVER");
+  console.log("🔐 ENV STATUS:", { openai: !!process.env.OPENAI_API_KEY, openrouter: !!process.env.OPENROUTER_API_KEY });
   const aiKey = process.env.OPENAI_API_KEY?.trim();
   const orKey = process.env.OPENROUTER_API_KEY?.trim();
 

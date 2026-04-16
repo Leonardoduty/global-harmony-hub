@@ -37,6 +37,7 @@ export default function HarmonyChatbot() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isRequestPending = useRef(false);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -52,6 +53,8 @@ export default function HarmonyChatbot() {
 
   const send = async (text: string) => {
     if (!text.trim() || loading) return;
+    if (isRequestPending.current) return;
+    isRequestPending.current = true;
     const userMsg: Message = { role: "user", content: text };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
@@ -75,9 +78,10 @@ export default function HarmonyChatbot() {
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
     } catch (error) {
       console.error("❌ API ERROR:", error);
-      setMessages((prev) => [...prev, { role: "assistant", content: "Sorry, I couldn't process that. Please try again." }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "System temporarily unavailable. Try again." }]);
     } finally {
       setLoading(false);
+      isRequestPending.current = false;
     }
   };
 

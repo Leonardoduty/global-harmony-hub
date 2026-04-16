@@ -16,14 +16,18 @@ function useLiveWorldState() {
   const [state, setState] = useState<WorldState | null>(null);
   useEffect(() => {
     let alive = true;
-    async function fetch() {
+    let pending = false;
+    async function load() {
+      if (pending) return;
+      pending = true;
       try {
         const res = await engineGetWorldState();
         if (alive && res.ok && res.data?.state) setState(res.data.state as WorldState);
       } catch {}
+      pending = false;
     }
-    fetch();
-    const id = setInterval(fetch, 8000);
+    load();
+    const id = setInterval(load, 30000);
     return () => { alive = false; clearInterval(id); };
   }, []);
   return state;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Globe, Shield, TrendingUp, AlertTriangle, RefreshCw, Zap } from "lucide-react";
 import { engineGetWorldState } from "@/lib/apiEngine";
@@ -42,7 +42,11 @@ export default function WorldStateDashboard() {
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
+  const pendingRef = useRef(false);
+
   const load = async () => {
+    if (pendingRef.current) return;
+    pendingRef.current = true;
     setLoading(true);
     try {
       const res = await engineGetWorldState();
@@ -54,6 +58,7 @@ export default function WorldStateDashboard() {
       console.warn("[WorldState]", e);
     } finally {
       setLoading(false);
+      pendingRef.current = false;
     }
   };
 

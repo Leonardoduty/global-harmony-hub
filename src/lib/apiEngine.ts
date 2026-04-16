@@ -36,6 +36,8 @@ export type DebugLog = {
   worldStateChange: unknown;
 };
 
+const API_BASE = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL ?? "";
+
 async function callEngine<T = unknown>(
   type: EngineType,
   payload: Record<string, unknown> = {}
@@ -46,7 +48,7 @@ async function callEngine<T = unknown>(
   console.log("🚀 API REQUEST SENT:", requestPayload);
 
   try {
-    const res = await fetch("/api/engine", {
+    const res = await fetch(`${API_BASE}/api/engine`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body,
